@@ -1,0 +1,86 @@
+erDiagram
+  users {
+    int id PK
+    string username
+    string email
+    string fullName
+    enum role
+    string password
+    timestamp createdAt
+  }
+  projects {
+    int id PK
+    string name
+    string description
+    int ownerId FK
+    boolean isDeleted
+    timestamp deletedAt
+    timestamp createdAt
+  }
+  tickets {
+    int id PK
+    string title
+    string description
+    enum status
+    enum priority
+    enum type
+    int projectId FK
+    int assigneeId FK
+    timestamp dueDate
+    boolean isOverdue
+    boolean isDeleted
+    timestamp deletedAt
+    int version
+    timestamp createdAt
+  }
+  comments {
+    int id PK
+    int ticketId FK
+    int authorId FK
+    string content
+    int version
+    timestamp createdAt
+  }
+  audit_logs {
+    int id PK
+    enum action
+    enum entityType
+    int entityId
+    int performedBy FK
+    enum actor
+    timestamp timestamp
+  }
+  token_blacklist {
+    int id PK
+    string token
+    timestamp expiresAt
+    timestamp createdAt
+  }
+  ticket_dependencies {
+    int ticketId FK "blocked ticket"
+    int blockerId FK "blocking ticket"
+  }
+  attachments {
+    int id PK
+    int ticketId FK
+    string filename
+    string contentType
+    string filePath
+    timestamp createdAt
+  }
+  comment_mentions {
+    int commentId FK
+    int userId FK
+  }
+
+  users ||--o{ projects : "owns"
+  users ||--o{ tickets : "assigned to"
+  users ||--o{ comments : "authors"
+  users ||--o{ audit_logs : "performed by"
+  users ||--o{ comment_mentions : "mentioned in"
+  projects ||--o{ tickets : "contains"
+  tickets ||--o{ comments : "has"
+  tickets ||--o{ attachments : "has"
+  tickets ||--o{ ticket_dependencies : "is blocked (ticketId)"
+  tickets ||--o{ ticket_dependencies : "is blocker (blockerId)"
+  comments ||--o{ comment_mentions : "mentions"
