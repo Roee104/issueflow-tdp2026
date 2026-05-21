@@ -6,7 +6,10 @@ erDiagram
     string fullName
     enum role
     string password
+    boolean isDeleted
+    timestamp deletedAt
     timestamp createdAt
+    timestamp updatedAt
   }
   projects {
     int id PK
@@ -16,6 +19,7 @@ erDiagram
     boolean isDeleted
     timestamp deletedAt
     timestamp createdAt
+    timestamp updatedAt
   }
   tickets {
     int id PK
@@ -30,16 +34,16 @@ erDiagram
     boolean isOverdue
     boolean isDeleted
     timestamp deletedAt
-    int version
     timestamp createdAt
+    timestamp updatedAt
   }
   comments {
     int id PK
     int ticketId FK
     int authorId FK
     string content
-    int version
     timestamp createdAt
+    timestamp updatedAt
   }
   audit_logs {
     int id PK
@@ -55,6 +59,7 @@ erDiagram
     string token
     timestamp expiresAt
     timestamp createdAt
+    timestamp updatedAt
   }
   ticket_dependencies {
     int ticketId FK "blocked ticket"
@@ -67,6 +72,7 @@ erDiagram
     string contentType
     string filePath
     timestamp createdAt
+    timestamp updatedAt
   }
   comment_mentions {
     int commentId FK
