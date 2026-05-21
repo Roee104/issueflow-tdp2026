@@ -12,6 +12,7 @@ import { AuditLogsModule } from './audit-logs/audit-logs.module';
 import { ProjectsModule } from './projects/projects.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { CommentsModule } from './comments/comments.module';
+import { DependenciesModule } from './dependencies/dependencies.module';
 import { User } from './users/user.entity';
 import { Project } from './projects/project.entity';
 import { Ticket } from './tickets/ticket.entity';
@@ -56,6 +57,7 @@ import { CommentMention } from './mentions/comment-mention.entity';
     ProjectsModule,
     TicketsModule,
     CommentsModule,
+    DependenciesModule,
   ],
   controllers: [AppController],
   providers: [

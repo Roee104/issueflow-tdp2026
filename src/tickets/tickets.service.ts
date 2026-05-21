@@ -9,6 +9,7 @@ import { DataSource, QueryFailedError, Repository } from 'typeorm';
 import { AuditAction, AuditActor, AuditEntityType } from '../audit-logs/audit-log.entity';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { Comment } from '../comments/comment.entity';
+import { TicketDependency } from '../dependencies/ticket-dependency.entity';
 import { Ticket, TicketPriority, TicketStatus } from './ticket.entity';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
@@ -27,6 +28,8 @@ export class TicketsService {
     private readonly ticketRepo: Repository<Ticket>,
     @InjectRepository(Comment)
     private readonly commentRepo: Repository<Comment>,
+    @InjectRepository(TicketDependency)
+    private readonly depRepo: Repository<TicketDependency>,
     private readonly dataSource: DataSource,
     private readonly auditLogsService: AuditLogsService,
   ) {}
@@ -98,6 +101,22 @@ export class TicketsService {
         throw new BadRequestException(
           `Ticket status cannot move backward from ${ticket.status} to ${dto.status}`,
         );
+      }
+
+      if (dto.status === TicketStatus.DONE) {
+        const blockers = await queryRunner.manager.find(TicketDependency, {
+          where: { ticketId: id },
+        });
+        for (const dep of blockers) {
+          const blocker = await queryRunner.manager.findOne(Ticket, {
+            where: { id: dep.blockerId },
+          });
+          if (!blocker || blocker.status !== TicketStatus.DONE) {
+            throw new BadRequestException(
+              'Cannot transition to DONE: ticket has unresolved blockers',
+            );
+          }
+        }
       }
 
       const updates: Partial<Ticket> = {};
