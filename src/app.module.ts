@@ -11,6 +11,7 @@ import { JwtAuthGuard } from './auth/auth.guard';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
 import { ProjectsModule } from './projects/projects.module';
 import { TicketsModule } from './tickets/tickets.module';
+import { CommentsModule } from './comments/comments.module';
 import { User } from './users/user.entity';
 import { Project } from './projects/project.entity';
 import { Ticket } from './tickets/ticket.entity';
@@ -54,6 +55,7 @@ import { CommentMention } from './mentions/comment-mention.entity';
     AuditLogsModule,
     ProjectsModule,
     TicketsModule,
+    CommentsModule,
   ],
   controllers: [AppController],
   providers: [
