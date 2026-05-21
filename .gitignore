@@ -46,6 +46,13 @@ lerna-debug.log*
 .temp
 .tmp
 
+# Working files (not for commit)
+docs/requirements.txt
+
+# Uploads directory (filesystem storage)
+/uploads/*
+!/uploads/.gitkeep
+
 # Runtime data
 pids
 *.pid
