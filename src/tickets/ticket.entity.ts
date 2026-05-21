@@ -1,4 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Project } from '../projects/project.entity';
+import { User } from '../users/user.entity';
 
 export enum TicketStatus {
   TODO = 'TODO',
@@ -40,9 +42,13 @@ export class Ticket {
   @Column({ type: 'enum', enum: TicketType })
   type: TicketType;
 
+  @ManyToOne(() => Project)
+  @JoinColumn({ name: 'projectId' })
   @Column()
   projectId: number;
 
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'assigneeId' })
   @Column({ nullable: true })
   assigneeId: number | null;
 

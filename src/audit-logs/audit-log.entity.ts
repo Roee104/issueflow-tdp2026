@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { User } from '../users/user.entity';
 
 export enum AuditAction {
   CREATE = 'CREATE',
@@ -39,6 +40,8 @@ export class AuditLog {
   @Column()
   entityId: number;
 
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'performedBy' })
   @Column({ nullable: true })
   performedBy: number | null;
 

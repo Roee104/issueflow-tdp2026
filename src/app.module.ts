@@ -9,6 +9,7 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/auth.guard';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
+import { ProjectsModule } from './projects/projects.module';
 import { User } from './users/user.entity';
 import { Project } from './projects/project.entity';
 import { Ticket } from './tickets/ticket.entity';
@@ -50,6 +51,7 @@ import { CommentMention } from './mentions/comment-mention.entity';
     UsersModule,
     AuthModule,
     AuditLogsModule,
+    ProjectsModule,
   ],
   controllers: [AppController],
   providers: [

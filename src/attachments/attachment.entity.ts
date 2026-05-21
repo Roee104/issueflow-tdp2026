@@ -1,10 +1,13 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Ticket } from '../tickets/ticket.entity';
 
 @Entity('attachments')
 export class Attachment {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @ManyToOne(() => Ticket)
+  @JoinColumn({ name: 'ticketId' })
   @Column()
   ticketId: number;
 
