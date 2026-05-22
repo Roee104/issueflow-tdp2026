@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, QueryFailedError, Repository } from 'typeorm';
 import { AuditAction, AuditActor, AuditEntityType } from '../audit-logs/audit-log.entity';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import { MentionsService } from '../mentions/mentions.service';
 import { Ticket } from '../tickets/ticket.entity';
 import { Comment } from './comment.entity';
 import { CreateCommentDto } from './dto/create-comment.dto';
@@ -22,6 +23,7 @@ export class CommentsService {
     private readonly ticketRepo: Repository<Ticket>,
     private readonly dataSource: DataSource,
     private readonly auditLogsService: AuditLogsService,
+    private readonly mentionsService: MentionsService,
   ) {}
 
   async findAllByTicket(ticketId: number) {
@@ -29,7 +31,12 @@ export class CommentsService {
     const comments = await this.commentRepo.find({
       where: { ticketId, isDeleted: false },
     });
-    return comments.map((c) => this.toResponse(c));
+    return Promise.all(
+      comments.map(async (c) => {
+        const mentionedUsers = await this.mentionsService.getMentionedUsers(c.id);
+        return this.toResponse(c, mentionedUsers);
+      }),
+    );
   }
 
   async create(ticketId: number, dto: CreateCommentDto, performedBy: number) {
@@ -43,6 +50,8 @@ export class CommentsService {
 
     try {
       const saved = await this.commentRepo.save(comment);
+      await this.mentionsService.saveMentions(saved.id, dto.content);
+      const mentionedUsers = await this.mentionsService.getMentionedUsers(saved.id);
       await this.auditLogsService.log({
         action: AuditAction.CREATE,
         entityType: AuditEntityType.COMMENT,
@@ -50,7 +59,7 @@ export class CommentsService {
         performedBy,
         actor: AuditActor.USER,
       });
-      return this.toResponse(saved);
+      return this.toResponse(saved, mentionedUsers);
     } catch (err) {
       if (err instanceof QueryFailedError && (err as any).code === '23503') {
         throw new BadRequestException(`Author with id ${dto.authorId} does not exist`);
@@ -95,6 +104,7 @@ export class CommentsService {
       await queryRunner.release();
     }
 
+    await this.mentionsService.updateMentions(commentId, dto.content);
     await this.auditLogsService.log({
       action: AuditAction.UPDATE,
       entityType: AuditEntityType.COMMENT,
@@ -127,8 +137,10 @@ export class CommentsService {
     if (!ticket) throw new NotFoundException(`Ticket with id ${ticketId} not found`);
   }
 
-  // mentionedUsers defaults to [] — Step 10 passes real mentions
-  toResponse(comment: Comment, mentionedUsers: { id: number; username: string; fullName: string }[] = []) {
+  toResponse(
+    comment: Comment,
+    mentionedUsers: { id: number; username: string; fullName: string }[] = [],
+  ) {
     return {
       id: comment.id,
       ticketId: comment.ticketId,
