@@ -5,12 +5,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { parse } from 'csv-parse/sync';
+import { stringify } from 'csv-stringify/sync';
 import { DataSource, QueryFailedError, Repository } from 'typeorm';
 import { AuditAction, AuditActor, AuditEntityType } from '../audit-logs/audit-log.entity';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { Comment } from '../comments/comment.entity';
 import { TicketDependency } from '../dependencies/ticket-dependency.entity';
-import { Ticket, TicketPriority, TicketStatus } from './ticket.entity';
+import { Ticket, TicketPriority, TicketStatus, TicketType } from './ticket.entity';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 
@@ -168,6 +170,105 @@ export class TicketsService {
       performedBy,
       actor: AuditActor.USER,
     });
+  }
+
+  async exportToCsv(projectId: number): Promise<string> {
+    const tickets = await this.ticketRepo.find({
+      where: { projectId, isDeleted: false },
+    });
+
+    const rows = tickets.map((t) => ({
+      id: t.id,
+      title: t.title,
+      description: t.description,
+      status: t.status,
+      priority: t.priority,
+      type: t.type,
+      assigneeId: t.assigneeId ?? '',
+    }));
+
+    return stringify(rows, {
+      header: true,
+      columns: ['id', 'title', 'description', 'status', 'priority', 'type', 'assigneeId'],
+    });
+  }
+
+  async importFromCsv(
+    csvBuffer: Buffer,
+    projectId: number,
+    performedBy: number,
+  ): Promise<{ created: number; failed: number; errors: { row: number; error: string }[] }> {
+    let records: any[];
+    try {
+      records = parse(csvBuffer, { columns: true, skip_empty_lines: true, trim: true });
+    } catch {
+      throw new BadRequestException('Invalid CSV format');
+    }
+
+    let created = 0;
+    let failed = 0;
+    const errors: { row: number; error: string }[] = [];
+
+    for (let i = 0; i < records.length; i++) {
+      const record = records[i];
+      const rowNum = i + 2; // row 1 is the header
+
+      try {
+        if (!record.title) throw new Error('Missing required field: title');
+        if (!record.description) throw new Error('Missing required field: description');
+        if (!record.status) throw new Error('Missing required field: status');
+        if (!record.priority) throw new Error('Missing required field: priority');
+        if (!record.type) throw new Error('Missing required field: type');
+
+        if (!Object.values(TicketStatus).includes(record.status)) {
+          throw new Error(
+            `Invalid status '${record.status}'. Valid values: ${Object.values(TicketStatus).join(', ')}`,
+          );
+        }
+        if (!Object.values(TicketPriority).includes(record.priority)) {
+          throw new Error(
+            `Invalid priority '${record.priority}'. Valid values: ${Object.values(TicketPriority).join(', ')}`,
+          );
+        }
+        if (!Object.values(TicketType).includes(record.type)) {
+          throw new Error(
+            `Invalid type '${record.type}'. Valid values: ${Object.values(TicketType).join(', ')}`,
+          );
+        }
+
+        let assigneeId: number | null = null;
+        if (record.assigneeId) {
+          assigneeId = parseInt(record.assigneeId, 10);
+          if (isNaN(assigneeId)) throw new Error('Invalid assigneeId: must be a number');
+        }
+
+        const ticket = this.ticketRepo.create({
+          title: record.title,
+          description: record.description,
+          status: record.status as TicketStatus,
+          priority: record.priority as TicketPriority,
+          type: record.type as TicketType,
+          projectId,
+          assigneeId,
+          isOverdue: false,
+        });
+
+        const saved = await this.ticketRepo.save(ticket);
+        await this.auditLogsService.log({
+          action: AuditAction.CREATE,
+          entityType: AuditEntityType.TICKET,
+          entityId: saved.id,
+          performedBy,
+          actor: AuditActor.USER,
+        });
+        created++;
+      } catch (err) {
+        failed++;
+        errors.push({ row: rowNum, error: err.message });
+      }
+    }
+
+    return { created, failed, errors };
   }
 
   // Used by Steps 13 and 15
