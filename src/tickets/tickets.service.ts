@@ -7,11 +7,12 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { parse } from 'csv-parse/sync';
 import { stringify } from 'csv-stringify/sync';
-import { DataSource, QueryFailedError, Repository } from 'typeorm';
+import { DataSource, Not, QueryFailedError, Repository } from 'typeorm';
 import { AuditAction, AuditActor, AuditEntityType } from '../audit-logs/audit-log.entity';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { Comment } from '../comments/comment.entity';
 import { TicketDependency } from '../dependencies/ticket-dependency.entity';
+import { User, UserRole } from '../users/user.entity';
 import { Ticket, TicketPriority, TicketStatus, TicketType } from './ticket.entity';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
@@ -32,6 +33,8 @@ export class TicketsService {
     private readonly commentRepo: Repository<Comment>,
     @InjectRepository(TicketDependency)
     private readonly depRepo: Repository<TicketDependency>,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
     private readonly dataSource: DataSource,
     private readonly auditLogsService: AuditLogsService,
   ) {}
@@ -50,6 +53,13 @@ export class TicketsService {
   }
 
   async create(dto: CreateTicketDto, performedBy: number) {
+    const triggersAutoAssign = dto.assigneeId === undefined;
+    let assigneeId: number | null = dto.assigneeId ?? null;
+
+    if (triggersAutoAssign) {
+      assigneeId = await this.autoAssign(dto.projectId);
+    }
+
     const ticket = this.ticketRepo.create({
       title: dto.title,
       description: dto.description,
@@ -57,13 +67,14 @@ export class TicketsService {
       priority: dto.priority,
       type: dto.type,
       projectId: dto.projectId,
-      assigneeId: dto.assigneeId ?? null,
+      assigneeId,
       dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
       isOverdue: false,
     });
 
     try {
       const saved = await this.ticketRepo.save(ticket);
+
       await this.auditLogsService.log({
         action: AuditAction.CREATE,
         entityType: AuditEntityType.TICKET,
@@ -71,6 +82,17 @@ export class TicketsService {
         performedBy,
         actor: AuditActor.USER,
       });
+
+      if (triggersAutoAssign && assigneeId !== null) {
+        await this.auditLogsService.log({
+          action: AuditAction.AUTO_ASSIGN,
+          entityType: AuditEntityType.TICKET,
+          entityId: saved.id,
+          performedBy: null,
+          actor: AuditActor.SYSTEM,
+        });
+      }
+
       return this.toResponse(saved);
     } catch (err) {
       if (err instanceof QueryFailedError && (err as any).code === '23503') {
@@ -78,6 +100,33 @@ export class TicketsService {
       }
       throw err;
     }
+  }
+
+  private async autoAssign(projectId: number): Promise<number | null> {
+    const developers = await this.userRepo.find({
+      where: { role: UserRole.DEVELOPER, isDeleted: false },
+      order: { id: 'ASC' },
+    });
+
+    if (developers.length === 0) return null;
+
+    const workloads = await Promise.all(
+      developers.map(async (dev) => ({
+        dev,
+        count: await this.ticketRepo.count({
+          where: {
+            projectId,
+            assigneeId: dev.id,
+            status: Not(TicketStatus.DONE),
+            isDeleted: false,
+          },
+        }),
+      })),
+    );
+
+    // Strict < keeps the first (lowest id) on tie — correct tie-break by registration order
+    const best = workloads.reduce((a, b) => (b.count < a.count ? b : a));
+    return best.dev.id;
   }
 
   async update(id: number, dto: UpdateTicketDto, performedBy: number): Promise<void> {
