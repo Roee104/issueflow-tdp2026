@@ -11,6 +11,13 @@ export interface AuditLogParams {
   actor: AuditActor;
 }
 
+export interface AuditLogFilters {
+  entityType?: AuditEntityType;
+  entityId?: number;
+  action?: AuditAction;
+  actor?: AuditActor;
+}
+
 @Injectable()
 export class AuditLogsService {
   constructor(
@@ -23,5 +30,32 @@ export class AuditLogsService {
       ...params,
       timestamp: new Date(),
     });
+  }
+
+  async findAll(filters: AuditLogFilters) {
+    const where: Partial<AuditLog> = {};
+    if (filters.entityType !== undefined) where.entityType = filters.entityType;
+    if (filters.entityId !== undefined) where.entityId = filters.entityId;
+    if (filters.action !== undefined) where.action = filters.action;
+    if (filters.actor !== undefined) where.actor = filters.actor;
+
+    const logs = await this.auditLogRepo.find({
+      where,
+      order: { timestamp: 'DESC' },
+    });
+
+    return logs.map((l) => this.toResponse(l));
+  }
+
+  private toResponse(log: AuditLog) {
+    return {
+      id: log.id,
+      action: log.action,
+      entityType: log.entityType,
+      entityId: log.entityId,
+      performedBy: log.performedBy,
+      actor: log.actor,
+      timestamp: (log.timestamp as Date).toISOString(),
+    };
   }
 }
