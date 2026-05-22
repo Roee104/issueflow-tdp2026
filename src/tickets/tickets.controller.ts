@@ -12,11 +12,13 @@ import {
   Query,
   Res,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { memoryStorage } from 'multer';
+import { RolesGuard } from '../auth/roles.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { TicketsService } from './tickets.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
@@ -26,7 +28,7 @@ import { UpdateTicketDto } from './dto/update-ticket.dto';
 export class TicketsController {
   constructor(private readonly ticketsService: TicketsService) {}
 
-  // Static routes declared before parameterized ones to prevent shadowing
+  // Static GET routes declared before parameterized :ticketId to prevent shadowing
   @Get('export')
   async export(
     @Query('projectId', ParseIntPipe) projectId: number,
@@ -37,6 +39,13 @@ export class TicketsController {
     res.send(csv);
   }
 
+  @Get('deleted')
+  @UseGuards(RolesGuard)
+  findDeleted(@Query('projectId', ParseIntPipe) projectId: number) {
+    return this.ticketsService.findDeleted(projectId);
+  }
+
+  // Static POST routes declared before parameterized :ticketId
   @Post('import')
   @HttpCode(200)
   @UseInterceptors(FileInterceptor('file', { storage: memoryStorage() }))
@@ -62,6 +71,16 @@ export class TicketsController {
   @Post()
   create(@Body() dto: CreateTicketDto, @CurrentUser() user: { userId: number }) {
     return this.ticketsService.create(dto, user.userId);
+  }
+
+  @Post(':ticketId/restore')
+  @HttpCode(200)
+  @UseGuards(RolesGuard)
+  restore(
+    @Param('ticketId', ParseIntPipe) ticketId: number,
+    @CurrentUser() user: { userId: number },
+  ) {
+    return this.ticketsService.restore(ticketId, user.userId);
   }
 
   @Patch(':ticketId')

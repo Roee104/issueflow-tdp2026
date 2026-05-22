@@ -320,7 +320,29 @@ export class TicketsService {
     return { created, failed, errors };
   }
 
-  // Used by Steps 13 and 15
+  async findDeleted(projectId: number) {
+    const tickets = await this.ticketRepo.find({
+      where: { projectId, isDeleted: true },
+    });
+    return tickets.map((t) => this.toResponse(t));
+  }
+
+  async restore(id: number, performedBy: number): Promise<void> {
+    const ticket = await this.ticketRepo.findOne({ where: { id, isDeleted: true } });
+    if (!ticket) throw new NotFoundException(`Deleted ticket with id ${id} not found`);
+
+    await this.commentRepo.update({ ticketId: id, isDeleted: true }, { isDeleted: false, deletedAt: null });
+    await this.ticketRepo.update(id, { isDeleted: false, deletedAt: null });
+
+    await this.auditLogsService.log({
+      action: AuditAction.RESTORE,
+      entityType: AuditEntityType.TICKET,
+      entityId: id,
+      performedBy,
+      actor: AuditActor.USER,
+    });
+  }
+
   async findByIdRaw(id: number): Promise<Ticket | null> {
     return this.ticketRepo.findOne({ where: { id, isDeleted: false } });
   }
