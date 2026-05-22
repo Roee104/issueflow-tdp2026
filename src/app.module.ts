@@ -13,6 +13,7 @@ import { ProjectsModule } from './projects/projects.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { CommentsModule } from './comments/comments.module';
 import { DependenciesModule } from './dependencies/dependencies.module';
+import { AttachmentsModule } from './attachments/attachments.module';
 import { User } from './users/user.entity';
 import { Project } from './projects/project.entity';
 import { Ticket } from './tickets/ticket.entity';
@@ -58,6 +59,7 @@ import { CommentMention } from './mentions/comment-mention.entity';
     TicketsModule,
     CommentsModule,
     DependenciesModule,
+    AttachmentsModule,
   ],
   controllers: [AppController],
   providers: [
