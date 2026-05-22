@@ -37,6 +37,11 @@ export class ProjectsController {
     return this.projectsService.findById(projectId);
   }
 
+  @Get(':projectId/workload')
+  getWorkload(@Param('projectId', ParseIntPipe) projectId: number) {
+    return this.projectsService.getWorkload(projectId);
+  }
+
   @Post()
   create(@Body() dto: CreateProjectDto, @CurrentUser() user: { userId: number }) {
     return this.projectsService.create(dto, user.userId);

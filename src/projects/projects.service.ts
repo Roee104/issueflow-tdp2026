@@ -4,7 +4,8 @@ import { In, QueryFailedError, Repository } from 'typeorm';
 import { AuditAction, AuditActor, AuditEntityType } from '../audit-logs/audit-log.entity';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { Comment } from '../comments/comment.entity';
-import { Ticket } from '../tickets/ticket.entity';
+import { Ticket, TicketStatus } from '../tickets/ticket.entity';
+import { User } from '../users/user.entity';
 import { Project } from './project.entity';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -18,6 +19,8 @@ export class ProjectsService {
     private readonly ticketRepo: Repository<Ticket>,
     @InjectRepository(Comment)
     private readonly commentRepo: Repository<Comment>,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
     private readonly auditLogsService: AuditLogsService,
   ) {}
 
@@ -122,6 +125,46 @@ export class ProjectsService {
       performedBy,
       actor: AuditActor.USER,
     });
+  }
+
+  async getWorkload(projectId: number) {
+    const project = await this.projectRepo.findOne({ where: { id: projectId, isDeleted: false } });
+    if (!project) throw new NotFoundException(`Project with id ${projectId} not found`);
+
+    // Load assigneeId + status for all non-deleted tickets in the project
+    const tickets = await this.ticketRepo.find({
+      where: { projectId, isDeleted: false },
+      select: ['assigneeId', 'status'],
+    });
+
+    // Build a set of linked users and a map of open ticket counts
+    const assigneeIds = new Set<number>();
+    const openCounts = new Map<number, number>();
+
+    for (const ticket of tickets) {
+      if (ticket.assigneeId === null) continue;
+      assigneeIds.add(ticket.assigneeId);
+      if (ticket.status !== TicketStatus.DONE) {
+        openCounts.set(ticket.assigneeId, (openCounts.get(ticket.assigneeId) ?? 0) + 1);
+      }
+    }
+
+    if (assigneeIds.size === 0) return [];
+
+    const users = await this.userRepo.find({
+      where: { id: In([...assigneeIds]), isDeleted: false },
+    });
+
+    const workload = users.map((u) => ({
+      userId: u.id,
+      username: u.username,
+      openTicketCount: openCounts.get(u.id) ?? 0,
+    }));
+
+    // Primary sort: openTicketCount ASC; secondary: userId ASC for determinism
+    workload.sort((a, b) => a.openTicketCount - b.openTicketCount || a.userId - b.userId);
+
+    return workload;
   }
 
   private toResponse(project: Project) {
