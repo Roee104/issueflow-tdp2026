@@ -97,7 +97,7 @@ This executes:
 docker exec -it issueflow-typescript-db-1 psql -U issueflow -c "CREATE DATABASE issueflow_test;"
 ```
 
-> **Note:** The container name `issueflow-typescript-db-1` is the default Docker Compose name derived from the project directory. If your container has a different name, run `docker ps` to find it and execute the `psql` command directly.
+> **Note:** The `test:setup` script uses `docker compose exec` which works regardless of the container name or the folder the project is cloned into.
 >
 > If the database already exists the command will error — that is safe to ignore.
 
