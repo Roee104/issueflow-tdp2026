@@ -44,8 +44,8 @@ Logout is implemented via a server-side token blacklist table rather than relyin
 **Soft-deleted user token rejection:**
 After discovering during testing that soft-deleted users could still authenticate using existing JWT tokens, a third validation step was added to the global JWT guard. On every authenticated request, the guard verifies the user still exists and is not soft-deleted — rejecting with 401 if not.
 
-**@ManyToOne relationships on all foreign keys:**
-All foreign key fields use proper TypeORM `@ManyToOne` + `@JoinColumn` decorators rather than plain `@Column()`. This enforces referential integrity at the database level — invalid foreign key values are rejected by PostgreSQL with error 23503 rather than silently accepted.
+**Foreign key handling:**
+Foreign key IDs are stored directly on the entities using TypeORM `@ManyToOne` + `@JoinColumn` decorators alongside `@Column()`. This links the relationships at the ORM level while keeping the column name explicit. PostgreSQL foreign key constraints are enforced through TypeORM's schema synchronization, and invalid foreign key values are rejected at the database level with error 23503.
 
 ---
 
