@@ -1,3 +1,12 @@
+/**
+ * Projects module — manages project lifecycle including soft delete and restore.
+ *
+ * Imports Ticket and Comment entities directly to handle cascade soft delete
+ * and restore without creating circular dependencies on TicketsModule or CommentsModule.
+ *
+ * Imports User entity to support the workload endpoint, which queries developer
+ * assignments without depending on UsersModule.
+ */
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Comment } from '../comments/comment.entity';

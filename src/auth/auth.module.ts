@@ -1,3 +1,10 @@
+/**
+ * Authentication module — wires together JWT configuration, Passport strategy,
+ * the global JWT guard, and the token blacklist persistence layer.
+ *
+ * Exports AuthService and JwtAuthGuard so they can be used in AppModule
+ * where JwtAuthGuard is registered as a global APP_GUARD.
+ */
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
@@ -13,6 +20,8 @@ import { UsersModule } from '../users/users.module';
 @Module({
   imports: [
     PassportModule,
+    // Configure JWT asynchronously so the secret and expiry are read from
+    // environment variables via ConfigService rather than hardcoded
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
@@ -24,6 +33,8 @@ import { UsersModule } from '../users/users.module';
       inject: [ConfigService],
     }),
     TypeOrmModule.forFeature([TokenBlacklist]),
+    // UsersModule is imported so AuthService can call findByUsernameInternal
+    // for login and findByIdInternal for the soft-delete check in JwtAuthGuard
     UsersModule,
   ],
   controllers: [AuthController],

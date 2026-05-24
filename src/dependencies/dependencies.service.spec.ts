@@ -1,3 +1,12 @@
+/**
+ * Unit tests for DependenciesService.
+ * Verifies all validation rules enforced when adding a ticket dependency:
+ * - Self-dependency prevention
+ * - Cross-project dependency prevention
+ * - Duplicate dependency prevention
+ * - Circular dependency detection via BFS
+ * - Valid dependency creation and audit logging
+ */
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { AuditAction, AuditActor } from '../audit-logs/audit-log.entity';
 import { DependenciesService } from './dependencies.service';
@@ -9,6 +18,7 @@ describe('DependenciesService', () => {
   let mockTicketRepo: any;
   let mockAuditLogsService: any;
 
+  /** Creates a minimal ticket object for use in mock responses. */
   const makeTicket = (id: number, projectId: number) => ({
     id,
     projectId,
@@ -35,6 +45,7 @@ describe('DependenciesService', () => {
   describe('add', () => {
     it('should throw 400 when a ticket tries to block itself', async () => {
       await expect(service.add(1, 1, 1)).rejects.toThrow(BadRequestException);
+      // Self-dependency check happens before any DB lookup
       expect(mockTicketRepo.findOne).not.toHaveBeenCalled();
     });
 

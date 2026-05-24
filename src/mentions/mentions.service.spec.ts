@@ -1,3 +1,8 @@
+/**
+ * Unit tests for MentionsService.
+ * Verifies @mention parsing, case-insensitive username matching,
+ * deduplication, unknown user handling, and update ordering.
+ */
 import { MentionsService } from './mentions.service';
 
 describe('MentionsService', () => {
@@ -77,7 +82,7 @@ describe('MentionsService', () => {
       expect(mockMentionRepo.delete).toHaveBeenCalledWith({ commentId: 10 });
       // New mentions saved
       expect(mockMentionRepo.save).toHaveBeenCalledWith({ commentId: 10, userId: 5 });
-      // delete must happen before save
+      // Verify delete-then-save ordering via Jest invocation call order
       const deleteOrder = mockMentionRepo.delete.mock.invocationCallOrder[0];
       const saveOrder = mockMentionRepo.save.mock.invocationCallOrder[0];
       expect(deleteOrder).toBeLessThan(saveOrder);

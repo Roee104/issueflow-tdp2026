@@ -1,3 +1,21 @@
+/**
+ * Unit tests for TicketsService and TicketsEscalationService.
+ *
+ * TicketsService tests cover:
+ * - Forward-only status transition enforcement
+ * - DONE ticket immutability
+ * - DONE blocker check (all dependencies must be DONE)
+ * - Auto-assignment by lowest workload with tie-breaking by lowest id
+ * - CSV import partial success handling
+ * - Soft delete cascade to comments
+ *
+ * TicketsEscalationService tests cover:
+ * - Priority promotion chain (LOW→MEDIUM→HIGH→CRITICAL)
+ * - isOverdue set when reaching CRITICAL
+ * - CRITICAL tickets skipped (idempotency)
+ * - Empty query result produces no updates
+ * - Correct TypeORM filter operators passed to the find query
+ */
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { AuditAction, AuditActor } from '../audit-logs/audit-log.entity';
 import { UserRole } from '../users/user.entity';
@@ -7,6 +25,7 @@ import { TicketsService } from './tickets.service';
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
+/** Creates a minimal ticket object for use in mock responses. */
 const makeTicket = (overrides: Record<string, any> = {}) => ({
   id: 1,
   title: 'Test ticket',
@@ -37,6 +56,7 @@ describe('TicketsService', () => {
   let mockQueryRunner: any;
 
   beforeEach(() => {
+    // Mock the QueryRunner used by pessimistic locking in update()
     mockQueryRunner = {
       connect: jest.fn(),
       startTransaction: jest.fn(),
@@ -78,6 +98,7 @@ describe('TicketsService', () => {
   // ── Status transitions ────────────────────────────────────────────────────
 
   describe('update – forward status transitions', () => {
+    /** Sets up the query runner mock for a status transition test. */
     const setupQueryRunner = (currentStatus: TicketStatus, newStatus: TicketStatus) => {
       mockQueryRunner.manager.findOne.mockResolvedValueOnce(
         makeTicket({ status: currentStatus }),
@@ -209,7 +230,7 @@ describe('TicketsService', () => {
         { id: 1, username: 'dev1', role: UserRole.DEVELOPER },
         { id: 2, username: 'dev2', role: UserRole.DEVELOPER },
       ]);
-      // Both have the same workload — dev1 (id=1) wins the tie
+      // Equal workload — dev1 (lowest id) wins via strict < in reduce
       mockTicketRepo.count.mockResolvedValueOnce(2).mockResolvedValueOnce(2);
 
       const saved = makeTicket({ id: 1, assigneeId: 1 });
@@ -231,6 +252,7 @@ describe('TicketsService', () => {
       const result = await service.create(baseDto, 1);
 
       expect(result.assigneeId).toBeNull();
+      // AUTO_ASSIGN must not be logged when no developer was assigned
       const autoAssignCalls = mockAuditLogsService.log.mock.calls.filter(
         ([args]: any) => args?.action === AuditAction.AUTO_ASSIGN,
       );
@@ -244,6 +266,7 @@ describe('TicketsService', () => {
 
       await service.create({ ...baseDto, assigneeId: 5 }, 1);
 
+      // userRepo must not be queried when assigneeId is explicitly set
       expect(mockUserRepo.find).not.toHaveBeenCalled();
     });
   });
@@ -267,6 +290,7 @@ describe('TicketsService', () => {
       expect(result.created).toBe(1);
       expect(result.failed).toBe(1);
       expect(result.errors).toHaveLength(1);
+      // Row 3 = second data row (row 1 = header, row 2 = valid row, row 3 = invalid row)
       expect(result.errors[0].row).toBe(3);
     });
 
@@ -293,10 +317,12 @@ describe('TicketsService', () => {
 
       await service.remove(1, 1);
 
+      // Comments must be soft-deleted first
       expect(mockCommentRepo.update).toHaveBeenCalledWith(
         { ticketId: 1, isDeleted: false },
         expect.objectContaining({ isDeleted: true, deletedAt: expect.any(Date) }),
       );
+      // Then the ticket itself
       expect(mockTicketRepo.update).toHaveBeenCalledWith(
         1,
         expect.objectContaining({ isDeleted: true, deletedAt: expect.any(Date) }),

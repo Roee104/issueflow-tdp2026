@@ -1,3 +1,13 @@
+/**
+ * Unit tests for JwtAuthGuard.
+ * Verifies the three-step authentication flow:
+ * 1. @Public routes bypass all checks
+ * 2. Blacklisted tokens are rejected with 401
+ * 3. Soft-deleted users are rejected with 401
+ *
+ * @nestjs/passport is mocked before import so AuthGuard('jwt') resolves
+ * to a simple stub — no real JWT validation occurs in these tests.
+ */
 import { UnauthorizedException } from '@nestjs/common';
 
 // Mock @nestjs/passport BEFORE importing JwtAuthGuard so that
@@ -18,6 +28,7 @@ import { JwtAuthGuard } from './auth.guard';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+/** Builds a minimal NestJS ExecutionContext with the given token and userId. */
 const makeContext = (token: string | null, userId = 1) => {
   const request = {
     headers: token ? { authorization: `Bearer ${token}` } : {},
@@ -69,6 +80,7 @@ describe('JwtAuthGuard', () => {
     await expect(guard.canActivate(makeContext('blacklisted-token'))).rejects.toThrow(
       UnauthorizedException,
     );
+    // User existence check must not run if the token is already blacklisted
     expect(mockUsersService.findByIdInternal).not.toHaveBeenCalled();
   });
 

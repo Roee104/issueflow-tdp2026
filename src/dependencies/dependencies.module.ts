@@ -1,3 +1,8 @@
+/**
+ * Dependencies module — manages blocking relationships between tickets.
+ * Imports the Ticket entity directly to validate ticket existence and
+ * same-project membership without creating a dependency on TicketsModule.
+ */
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Ticket } from '../tickets/ticket.entity';

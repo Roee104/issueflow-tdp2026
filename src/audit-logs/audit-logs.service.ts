@@ -1,16 +1,24 @@
+/**
+ * Shared service for writing and querying the system audit log.
+ * Injected into every feature module that performs state-changing operations.
+ * Available globally via @Global() on AuditLogsModule — no explicit import needed.
+ */
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuditAction, AuditActor, AuditEntityType, AuditLog } from './audit-log.entity';
 
+/** Parameters required to record a single audit log entry. */
 export interface AuditLogParams {
   action: AuditAction;
   entityType: AuditEntityType;
   entityId: number;
+  /** Null when the actor is SYSTEM (e.g. auto-assignment, escalation cron). */
   performedBy: number | null;
   actor: AuditActor;
 }
 
+/** Optional filters for querying the audit log — all fields are independent. */
 export interface AuditLogFilters {
   entityType?: AuditEntityType;
   entityId?: number;
@@ -25,6 +33,12 @@ export class AuditLogsService {
     private readonly auditLogRepo: Repository<AuditLog>,
   ) {}
 
+  /**
+   * Records a single state-changing action in the audit log.
+   * Called after every successful write operation across the system.
+   *
+   * @param params - The action details to persist
+   */
   async log(params: AuditLogParams): Promise<void> {
     await this.auditLogRepo.save({
       ...params,
@@ -32,6 +46,14 @@ export class AuditLogsService {
     });
   }
 
+  /**
+   * Returns all audit log entries matching the given filters, newest first.
+   * Only filters that are explicitly provided are applied to the query —
+   * undefined fields are ignored rather than matched against NULL.
+   *
+   * @param filters - Optional filters to narrow the result set
+   * @returns Array of audit log entries in descending timestamp order
+   */
   async findAll(filters: AuditLogFilters) {
     const where: Partial<AuditLog> = {};
     if (filters.entityType !== undefined) where.entityType = filters.entityType;
@@ -47,6 +69,10 @@ export class AuditLogsService {
     return logs.map((l) => this.toResponse(l));
   }
 
+  /**
+   * Maps an AuditLog entity to the public API response shape.
+   * Timestamp is serialized as an ISO-8601 string with UTC Z suffix.
+   */
   private toResponse(log: AuditLog) {
     return {
       id: log.id,

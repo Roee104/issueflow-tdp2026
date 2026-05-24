@@ -1,3 +1,11 @@
+/**
+ * Unit tests for ProjectsService.
+ * Verifies cascade soft delete and cascade restore behavior:
+ * - Deleting a project soft-deletes all its tickets and their comments
+ * - Deleting a project with no tickets still soft-deletes the project
+ * - Restoring a project restores all its tickets and their comments
+ * - Restoring a non-deleted project throws 404
+ */
 import { NotFoundException } from '@nestjs/common';
 import { AuditAction, AuditActor } from '../audit-logs/audit-log.entity';
 import { ProjectsService } from './projects.service';
@@ -11,6 +19,7 @@ describe('ProjectsService', () => {
   let mockUserRepo: any;
   let mockAuditLogsService: any;
 
+  /** Creates a minimal project object for use in mock responses. */
   const makeProject = (overrides: Record<string, any> = {}) => ({
     id: 1,
     name: 'Project Alpha',
@@ -88,6 +97,7 @@ describe('ProjectsService', () => {
 
       await service.remove(1, 1);
 
+      // No comments to cascade to — commentRepo should not be called
       expect(mockCommentRepo.update).not.toHaveBeenCalled();
       expect(mockProjectRepo.update).toHaveBeenCalledWith(
         1,
