@@ -94,7 +94,7 @@ npm run test:setup
 This executes:
 
 ```
-docker exec -it issueflow-typescript-db-1 psql -U issueflow -c "CREATE DATABASE issueflow_test;"
+docker compose exec db psql -U issueflow -c "CREATE DATABASE issueflow_test;"
 ```
 
 > **Note:** The `test:setup` script uses `docker compose exec` which works regardless of the container name or the folder the project is cloned into.
