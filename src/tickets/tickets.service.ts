@@ -186,7 +186,7 @@ export class TicketsService {
     } catch (err) {
       await queryRunner.rollbackTransaction();
       const code = (err as any).code;
-      const msg: string = err.message ?? '';
+      const msg: string = (err as any).message ?? '';
       if (code === '55P03' || msg.includes('canceling statement due to lock timeout')) {
         throw new ConflictException('Ticket is currently being updated by another user');
       }
@@ -313,7 +313,7 @@ export class TicketsService {
         created++;
       } catch (err) {
         failed++;
-        errors.push({ row: rowNum, error: err.message });
+        errors.push({ row: rowNum, error: (err as any).message });
       }
     }
 

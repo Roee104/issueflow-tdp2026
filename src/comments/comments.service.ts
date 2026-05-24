@@ -95,7 +95,7 @@ export class CommentsService {
     } catch (err) {
       await queryRunner.rollbackTransaction();
       const code = (err as any).code;
-      const msg: string = err.message ?? '';
+      const msg: string = (err as any).message ?? '';
       if (code === '55P03' || msg.includes('canceling statement due to lock timeout')) {
         throw new ConflictException('Comment is currently being updated by another user');
       }
