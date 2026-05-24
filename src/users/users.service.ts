@@ -8,11 +8,19 @@
  * with audit logs, ticket assignments, and comment authorship records.
  * Soft-deleted users cannot authenticate — JwtAuthGuard checks isDeleted on every request.
  */
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { AuditAction, AuditActor, AuditEntityType } from '../audit-logs/audit-log.entity';
+import {
+  AuditAction,
+  AuditActor,
+  AuditEntityType,
+} from '../audit-logs/audit-log.entity';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { User } from './user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -39,7 +47,9 @@ export class UsersService {
    * @throws NotFoundException if the user does not exist or is soft-deleted
    */
   async findById(id: number) {
-    const user = await this.userRepo.findOne({ where: { id, isDeleted: false } });
+    const user = await this.userRepo.findOne({
+      where: { id, isDeleted: false },
+    });
     if (!user) throw new NotFoundException(`User with id ${id} not found`);
     return this.toResponse(user);
   }
@@ -90,8 +100,14 @@ export class UsersService {
    * @param performedBy - The ID of the authenticated user (for audit logging)
    * @throws NotFoundException if the user does not exist or is soft-deleted
    */
-  async update(id: number, dto: UpdateUserDto, performedBy: number | null = null): Promise<void> {
-    const user = await this.userRepo.findOne({ where: { id, isDeleted: false } });
+  async update(
+    id: number,
+    dto: UpdateUserDto,
+    performedBy: number | null = null,
+  ): Promise<void> {
+    const user = await this.userRepo.findOne({
+      where: { id, isDeleted: false },
+    });
     if (!user) throw new NotFoundException(`User with id ${id} not found`);
     await this.userRepo.update(id, dto);
     await this.auditLogsService.log({
@@ -113,7 +129,9 @@ export class UsersService {
    * @throws NotFoundException if the user does not exist or is already soft-deleted
    */
   async remove(id: number, performedBy: number | null = null): Promise<void> {
-    const user = await this.userRepo.findOne({ where: { id, isDeleted: false } });
+    const user = await this.userRepo.findOne({
+      where: { id, isDeleted: false },
+    });
     if (!user) throw new NotFoundException(`User with id ${id} not found`);
     await this.userRepo.update(id, { isDeleted: true, deletedAt: new Date() });
     await this.auditLogsService.log({

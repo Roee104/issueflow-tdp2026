@@ -5,11 +5,19 @@
  * If a validation check fails after a file has been written to disk, the file
  * is deleted before the error is thrown to prevent orphaned files.
  */
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { unlinkSync } from 'fs';
 import { Repository } from 'typeorm';
-import { AuditAction, AuditActor, AuditEntityType } from '../audit-logs/audit-log.entity';
+import {
+  AuditAction,
+  AuditActor,
+  AuditEntityType,
+} from '../audit-logs/audit-log.entity';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { Ticket } from '../tickets/ticket.entity';
 import { Attachment } from './attachment.entity';
@@ -39,14 +47,20 @@ export class AttachmentsService {
    * @throws BadRequestException if the file exceeds 10 MB
    * @throws NotFoundException if the ticket does not exist or is soft-deleted
    */
-  async upload(ticketId: number, file: Express.Multer.File, performedBy: number) {
+  async upload(
+    ticketId: number,
+    file: Express.Multer.File,
+    performedBy: number,
+  ) {
     // Size check happens after Multer writes to disk — delete the file if it fails
     if (file.size > MAX_FILE_SIZE) {
       this.deleteFile(file.path);
       throw new BadRequestException('File size must not exceed 10 MB');
     }
 
-    const ticket = await this.ticketRepo.findOne({ where: { id: ticketId, isDeleted: false } });
+    const ticket = await this.ticketRepo.findOne({
+      where: { id: ticketId, isDeleted: false },
+    });
     if (!ticket) {
       // Delete the already-written file to prevent orphaned uploads
       this.deleteFile(file.path);
@@ -81,11 +95,18 @@ export class AttachmentsService {
    * @param performedBy - The ID of the user performing the deletion
    * @throws NotFoundException if the attachment does not exist or belongs to a different ticket
    */
-  async remove(ticketId: number, attachmentId: number, performedBy: number): Promise<void> {
+  async remove(
+    ticketId: number,
+    attachmentId: number,
+    performedBy: number,
+  ): Promise<void> {
     const attachment = await this.attachmentRepo.findOne({
       where: { id: attachmentId, ticketId },
     });
-    if (!attachment) throw new NotFoundException(`Attachment with id ${attachmentId} not found`);
+    if (!attachment)
+      throw new NotFoundException(
+        `Attachment with id ${attachmentId} not found`,
+      );
 
     this.deleteFile(attachment.filePath);
     await this.attachmentRepo.delete(attachmentId);

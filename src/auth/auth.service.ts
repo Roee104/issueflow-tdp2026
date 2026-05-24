@@ -42,7 +42,11 @@ export class AuthService {
 
     // Embed userId, username, and role in the payload so downstream guards
     // and decorators can identify the user without an extra DB lookup
-    const payload = { userId: user.id, username: user.username, role: user.role };
+    const payload = {
+      userId: user.id,
+      username: user.username,
+      role: user.role,
+    };
     const accessToken = this.jwtService.sign(payload);
 
     return { accessToken, tokenType: 'Bearer', expiresIn: 3600 };

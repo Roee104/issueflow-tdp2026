@@ -20,12 +20,21 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { parse } from 'csv-parse/sync';
 import { stringify } from 'csv-stringify/sync';
 import { DataSource, Not, QueryFailedError, Repository } from 'typeorm';
-import { AuditAction, AuditActor, AuditEntityType } from '../audit-logs/audit-log.entity';
+import {
+  AuditAction,
+  AuditActor,
+  AuditEntityType,
+} from '../audit-logs/audit-log.entity';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { Comment } from '../comments/comment.entity';
 import { TicketDependency } from '../dependencies/ticket-dependency.entity';
 import { User, UserRole } from '../users/user.entity';
-import { Ticket, TicketPriority, TicketStatus, TicketType } from './ticket.entity';
+import {
+  Ticket,
+  TicketPriority,
+  TicketStatus,
+  TicketType,
+} from './ticket.entity';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 
@@ -74,7 +83,9 @@ export class TicketsService {
    * @throws NotFoundException if the ticket does not exist or is soft-deleted
    */
   async findById(id: number) {
-    const ticket = await this.ticketRepo.findOne({ where: { id, isDeleted: false } });
+    const ticket = await this.ticketRepo.findOne({
+      where: { id, isDeleted: false },
+    });
     if (!ticket) throw new NotFoundException(`Ticket with id ${id} not found`);
     return this.toResponse(ticket);
   }
@@ -141,7 +152,9 @@ export class TicketsService {
     } catch (err) {
       // PostgreSQL error 23503 = foreign key violation — projectId or assigneeId does not exist
       if (err instanceof QueryFailedError && (err as any).code === '23503') {
-        throw new BadRequestException(`Project or assignee referenced does not exist`);
+        throw new BadRequestException(
+          `Project or assignee referenced does not exist`,
+        );
       }
       throw err;
     }
@@ -207,7 +220,11 @@ export class TicketsService {
    * @throws BadRequestException if the ticket is DONE, transition is backward, or blockers unresolved
    * @throws ConflictException if the lock timeout is exceeded
    */
-  async update(id: number, dto: UpdateTicketDto, performedBy: number): Promise<void> {
+  async update(
+    id: number,
+    dto: UpdateTicketDto,
+    performedBy: number,
+  ): Promise<void> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -221,15 +238,21 @@ export class TicketsService {
         lock: { mode: 'pessimistic_write' },
       });
 
-      if (!ticket) throw new NotFoundException(`Ticket with id ${id} not found`);
+      if (!ticket)
+        throw new NotFoundException(`Ticket with id ${id} not found`);
 
       // DONE tickets are immutable — no updates allowed
       if (ticket.status === TicketStatus.DONE) {
-        throw new BadRequestException('Cannot update a ticket that is already DONE');
+        throw new BadRequestException(
+          'Cannot update a ticket that is already DONE',
+        );
       }
 
       // Enforce forward-only status transitions
-      if (dto.status !== undefined && STATUS_ORDER[dto.status] < STATUS_ORDER[ticket.status]) {
+      if (
+        dto.status !== undefined &&
+        STATUS_ORDER[dto.status] < STATUS_ORDER[ticket.status]
+      ) {
         throw new BadRequestException(
           `Ticket status cannot move backward from ${ticket.status} to ${dto.status}`,
         );
@@ -262,7 +285,8 @@ export class TicketsService {
         updates.isOverdue = false;
       }
       if (dto.assigneeId !== undefined) updates.assigneeId = dto.assigneeId;
-      if (dto.dueDate !== undefined) updates.dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
+      if (dto.dueDate !== undefined)
+        updates.dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
 
       await queryRunner.manager.update(Ticket, id, updates);
       await queryRunner.commitTransaction();
@@ -271,8 +295,13 @@ export class TicketsService {
       const code = (err as any).code;
       const msg: string = (err as any).message ?? '';
       // PostgreSQL error 55P03 = lock_not_available (lock timeout exceeded)
-      if (code === '55P03' || msg.includes('canceling statement due to lock timeout')) {
-        throw new ConflictException('Ticket is currently being updated by another user');
+      if (
+        code === '55P03' ||
+        msg.includes('canceling statement due to lock timeout')
+      ) {
+        throw new ConflictException(
+          'Ticket is currently being updated by another user',
+        );
       }
       throw err;
     } finally {
@@ -297,12 +326,17 @@ export class TicketsService {
    * @throws NotFoundException if the ticket does not exist or is already soft-deleted
    */
   async remove(id: number, performedBy: number): Promise<void> {
-    const ticket = await this.ticketRepo.findOne({ where: { id, isDeleted: false } });
+    const ticket = await this.ticketRepo.findOne({
+      where: { id, isDeleted: false },
+    });
     if (!ticket) throw new NotFoundException(`Ticket with id ${id} not found`);
 
     const now = new Date();
     // Cascade: soft delete all non-deleted comments on this ticket first
-    await this.commentRepo.update({ ticketId: id, isDeleted: false }, { isDeleted: true, deletedAt: now });
+    await this.commentRepo.update(
+      { ticketId: id, isDeleted: false },
+      { isDeleted: true, deletedAt: now },
+    );
     await this.ticketRepo.update(id, { isDeleted: true, deletedAt: now });
 
     await this.auditLogsService.log({
@@ -340,7 +374,15 @@ export class TicketsService {
 
     return stringify(rows, {
       header: true,
-      columns: ['id', 'title', 'description', 'status', 'priority', 'type', 'assigneeId'],
+      columns: [
+        'id',
+        'title',
+        'description',
+        'status',
+        'priority',
+        'type',
+        'assigneeId',
+      ],
     });
   }
 
@@ -359,10 +401,18 @@ export class TicketsService {
     csvBuffer: Buffer,
     projectId: number,
     performedBy: number,
-  ): Promise<{ created: number; failed: number; errors: { row: number; error: string }[] }> {
+  ): Promise<{
+    created: number;
+    failed: number;
+    errors: { row: number; error: string }[];
+  }> {
     let records: any[];
     try {
-      records = parse(csvBuffer, { columns: true, skip_empty_lines: true, trim: true });
+      records = parse(csvBuffer, {
+        columns: true,
+        skip_empty_lines: true,
+        trim: true,
+      });
     } catch {
       throw new BadRequestException('Invalid CSV format');
     }
@@ -374,13 +424,15 @@ export class TicketsService {
     for (let i = 0; i < records.length; i++) {
       const record = records[i];
       // i + 2 because row 1 is the header, and array index is 0-based
-      const rowNum = i + 2; 
+      const rowNum = i + 2;
 
       try {
         if (!record.title) throw new Error('Missing required field: title');
-        if (!record.description) throw new Error('Missing required field: description');
+        if (!record.description)
+          throw new Error('Missing required field: description');
         if (!record.status) throw new Error('Missing required field: status');
-        if (!record.priority) throw new Error('Missing required field: priority');
+        if (!record.priority)
+          throw new Error('Missing required field: priority');
         if (!record.type) throw new Error('Missing required field: type');
 
         if (!Object.values(TicketStatus).includes(record.status)) {
@@ -402,7 +454,8 @@ export class TicketsService {
         let assigneeId: number | null = null;
         if (record.assigneeId) {
           assigneeId = parseInt(record.assigneeId, 10);
-          if (isNaN(assigneeId)) throw new Error('Invalid assigneeId: must be a number');
+          if (isNaN(assigneeId))
+            throw new Error('Invalid assigneeId: must be a number');
         }
 
         const ticket = this.ticketRepo.create({
@@ -455,11 +508,17 @@ export class TicketsService {
    * @param projectId - The project whose deleted tickets to retrieve
    */
   async restore(id: number, performedBy: number): Promise<void> {
-    const ticket = await this.ticketRepo.findOne({ where: { id, isDeleted: true } });
-    if (!ticket) throw new NotFoundException(`Deleted ticket with id ${id} not found`);
+    const ticket = await this.ticketRepo.findOne({
+      where: { id, isDeleted: true },
+    });
+    if (!ticket)
+      throw new NotFoundException(`Deleted ticket with id ${id} not found`);
 
     // Cascade: restore all soft-deleted comments on this ticket
-    await this.commentRepo.update({ ticketId: id, isDeleted: true }, { isDeleted: false, deletedAt: null });
+    await this.commentRepo.update(
+      { ticketId: id, isDeleted: true },
+      { isDeleted: false, deletedAt: null },
+    );
     await this.ticketRepo.update(id, { isDeleted: false, deletedAt: null });
 
     await this.auditLogsService.log({

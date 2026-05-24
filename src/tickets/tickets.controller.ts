@@ -90,7 +90,11 @@ export class TicketsController {
     @CurrentUser() user: { userId: number },
   ) {
     if (!file) throw new BadRequestException('No CSV file provided');
-    return this.ticketsService.importFromCsv(file.buffer, projectId, user.userId);
+    return this.ticketsService.importFromCsv(
+      file.buffer,
+      projectId,
+      user.userId,
+    );
   }
 
   /**
@@ -124,7 +128,10 @@ export class TicketsController {
    * @returns The created ticket
    */
   @Post()
-  create(@Body() dto: CreateTicketDto, @CurrentUser() user: { userId: number }) {
+  create(
+    @Body() dto: CreateTicketDto,
+    @CurrentUser() user: { userId: number },
+  ) {
     return this.ticketsService.create(dto, user.userId);
   }
 

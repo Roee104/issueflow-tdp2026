@@ -7,7 +7,13 @@
  * The password field stores a bcrypt hash — it is never returned in API responses.
  * Soft-deleted users cannot authenticate — JwtAuthGuard checks isDeleted on every request.
  */
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 /** The two roles in the system — controls access to ADMIN-only endpoints. */
 export enum UserRole {

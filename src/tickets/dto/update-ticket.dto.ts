@@ -5,7 +5,14 @@
  * Status transitions are validated in the service: only forward transitions are allowed
  * and a ticket cannot be updated once it reaches DONE.
  */
-import { IsEnum, IsInt, IsISO8601, IsOptional, IsPositive, IsString } from 'class-validator';
+import {
+  IsEnum,
+  IsInt,
+  IsISO8601,
+  IsOptional,
+  IsPositive,
+  IsString,
+} from 'class-validator';
 import { TicketPriority, TicketStatus } from '../ticket.entity';
 
 export class UpdateTicketDto {

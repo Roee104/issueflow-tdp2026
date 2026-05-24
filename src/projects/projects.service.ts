@@ -9,10 +9,18 @@
  * Ticket and Comment repositories are injected directly to handle the cascade
  * without creating circular dependencies on TicketsModule or CommentsModule.
  */
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, QueryFailedError, Repository } from 'typeorm';
-import { AuditAction, AuditActor, AuditEntityType } from '../audit-logs/audit-log.entity';
+import {
+  AuditAction,
+  AuditActor,
+  AuditEntityType,
+} from '../audit-logs/audit-log.entity';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { Comment } from '../comments/comment.entity';
 import { Ticket, TicketStatus } from '../tickets/ticket.entity';
@@ -37,7 +45,9 @@ export class ProjectsService {
 
   /** Returns all active (non-deleted) projects. */
   async findAll() {
-    const projects = await this.projectRepo.find({ where: { isDeleted: false } });
+    const projects = await this.projectRepo.find({
+      where: { isDeleted: false },
+    });
     return projects.map((p) => this.toResponse(p));
   }
 
@@ -48,14 +58,19 @@ export class ProjectsService {
    * @throws NotFoundException if the project does not exist or is soft-deleted
    */
   async findById(id: number) {
-    const project = await this.projectRepo.findOne({ where: { id, isDeleted: false } });
-    if (!project) throw new NotFoundException(`Project with id ${id} not found`);
+    const project = await this.projectRepo.findOne({
+      where: { id, isDeleted: false },
+    });
+    if (!project)
+      throw new NotFoundException(`Project with id ${id} not found`);
     return this.toResponse(project);
   }
 
   /** Returns all soft-deleted projects. Used by the ADMIN-only deleted list endpoint. */
   async findDeleted() {
-    const projects = await this.projectRepo.find({ where: { isDeleted: true } });
+    const projects = await this.projectRepo.find({
+      where: { isDeleted: true },
+    });
     return projects.map((p) => this.toResponse(p));
   }
 
@@ -83,7 +98,9 @@ export class ProjectsService {
     } catch (err) {
       if (err instanceof QueryFailedError && (err as any).code === '23503') {
         // PostgreSQL error 23503 = foreign key violation — ownerId does not exist
-        throw new BadRequestException(`Owner with id ${dto.ownerId} does not exist`);
+        throw new BadRequestException(
+          `Owner with id ${dto.ownerId} does not exist`,
+        );
       }
       throw err;
     }
@@ -97,9 +114,16 @@ export class ProjectsService {
    * @param performedBy - The ID of the authenticated user (for audit logging)
    * @throws NotFoundException if the project does not exist or is soft-deleted
    */
-  async update(id: number, dto: UpdateProjectDto, performedBy: number): Promise<void> {
-    const project = await this.projectRepo.findOne({ where: { id, isDeleted: false } });
-    if (!project) throw new NotFoundException(`Project with id ${id} not found`);
+  async update(
+    id: number,
+    dto: UpdateProjectDto,
+    performedBy: number,
+  ): Promise<void> {
+    const project = await this.projectRepo.findOne({
+      where: { id, isDeleted: false },
+    });
+    if (!project)
+      throw new NotFoundException(`Project with id ${id} not found`);
     await this.projectRepo.update(id, dto);
     await this.auditLogsService.log({
       action: AuditAction.UPDATE,
@@ -119,8 +143,11 @@ export class ProjectsService {
    * @throws NotFoundException if the project does not exist or is already soft-deleted
    */
   async remove(id: number, performedBy: number): Promise<void> {
-    const project = await this.projectRepo.findOne({ where: { id, isDeleted: false } });
-    if (!project) throw new NotFoundException(`Project with id ${id} not found`);
+    const project = await this.projectRepo.findOne({
+      where: { id, isDeleted: false },
+    });
+    if (!project)
+      throw new NotFoundException(`Project with id ${id} not found`);
 
     const now = new Date();
 
@@ -131,9 +158,15 @@ export class ProjectsService {
     });
     if (tickets.length > 0) {
       const ticketIds = tickets.map((t) => t.id);
-      await this.ticketRepo.update({ projectId: id, isDeleted: false }, { isDeleted: true, deletedAt: now });
+      await this.ticketRepo.update(
+        { projectId: id, isDeleted: false },
+        { isDeleted: true, deletedAt: now },
+      );
       // Cascade: soft delete all comments on those tickets
-      await this.commentRepo.update({ ticketId: In(ticketIds) }, { isDeleted: true, deletedAt: now });
+      await this.commentRepo.update(
+        { ticketId: In(ticketIds) },
+        { isDeleted: true, deletedAt: now },
+      );
     }
 
     await this.projectRepo.update(id, { isDeleted: true, deletedAt: now });
@@ -154,8 +187,11 @@ export class ProjectsService {
    * @throws NotFoundException if the project does not exist or is not soft-deleted
    */
   async restore(id: number, performedBy: number): Promise<void> {
-    const project = await this.projectRepo.findOne({ where: { id, isDeleted: true } });
-    if (!project) throw new NotFoundException(`Deleted project with id ${id} not found`);
+    const project = await this.projectRepo.findOne({
+      where: { id, isDeleted: true },
+    });
+    if (!project)
+      throw new NotFoundException(`Deleted project with id ${id} not found`);
 
     // Cascade: restore all tickets that belong to this project
     const tickets = await this.ticketRepo.find({
@@ -164,9 +200,15 @@ export class ProjectsService {
     });
     if (tickets.length > 0) {
       const ticketIds = tickets.map((t) => t.id);
-      await this.ticketRepo.update({ projectId: id, isDeleted: true }, { isDeleted: false, deletedAt: null });
+      await this.ticketRepo.update(
+        { projectId: id, isDeleted: true },
+        { isDeleted: false, deletedAt: null },
+      );
       // Cascade: restore all comments on those tickets
-      await this.commentRepo.update({ ticketId: In(ticketIds) }, { isDeleted: false, deletedAt: null });
+      await this.commentRepo.update(
+        { ticketId: In(ticketIds) },
+        { isDeleted: false, deletedAt: null },
+      );
     }
 
     await this.projectRepo.update(id, { isDeleted: false, deletedAt: null });
@@ -194,8 +236,11 @@ export class ProjectsService {
    * @throws NotFoundException if the project does not exist or is soft-deleted
    */
   async getWorkload(projectId: number) {
-    const project = await this.projectRepo.findOne({ where: { id: projectId, isDeleted: false } });
-    if (!project) throw new NotFoundException(`Project with id ${projectId} not found`);
+    const project = await this.projectRepo.findOne({
+      where: { id: projectId, isDeleted: false },
+    });
+    if (!project)
+      throw new NotFoundException(`Project with id ${projectId} not found`);
 
     // Select only the fields needed for aggregation — avoids full entity hydration
     const tickets = await this.ticketRepo.find({
@@ -212,7 +257,10 @@ export class ProjectsService {
       assigneeIds.add(ticket.assigneeId);
       // DONE tickets do not count toward open workload
       if (ticket.status !== TicketStatus.DONE) {
-        openCounts.set(ticket.assigneeId, (openCounts.get(ticket.assigneeId) ?? 0) + 1);
+        openCounts.set(
+          ticket.assigneeId,
+          (openCounts.get(ticket.assigneeId) ?? 0) + 1,
+        );
       }
     }
 
@@ -230,7 +278,9 @@ export class ProjectsService {
     }));
 
     // Primary sort: openTicketCount ASC; secondary: userId ASC for determinism
-    workload.sort((a, b) => a.openTicketCount - b.openTicketCount || a.userId - b.userId);
+    workload.sort(
+      (a, b) => a.openTicketCount - b.openTicketCount || a.userId - b.userId,
+    );
 
     return workload;
   }

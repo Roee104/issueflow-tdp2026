@@ -6,7 +6,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { AuditAction, AuditActor, AuditEntityType, AuditLog } from './audit-log.entity';
+import {
+  AuditAction,
+  AuditActor,
+  AuditEntityType,
+  AuditLog,
+} from './audit-log.entity';
 
 /** Parameters required to record a single audit log entry. */
 export interface AuditLogParams {

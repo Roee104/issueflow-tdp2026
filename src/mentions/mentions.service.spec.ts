@@ -36,7 +36,10 @@ describe('MentionsService', () => {
 
       await service.saveMentions(10, 'Hello @jdoe!');
 
-      expect(mockMentionRepo.save).toHaveBeenCalledWith({ commentId: 10, userId: 1 });
+      expect(mockMentionRepo.save).toHaveBeenCalledWith({
+        commentId: 10,
+        userId: 1,
+      });
     });
 
     it('should match usernames case-insensitively', async () => {
@@ -49,7 +52,10 @@ describe('MentionsService', () => {
 
       // findOne should have been called (with whatever ILike wraps 'ALICE')
       expect(mockUserRepo.findOne).toHaveBeenCalled();
-      expect(mockMentionRepo.save).toHaveBeenCalledWith({ commentId: 10, userId: 2 });
+      expect(mockMentionRepo.save).toHaveBeenCalledWith({
+        commentId: 10,
+        userId: 2,
+      });
     });
 
     it('should deduplicate repeated mentions of the same username', async () => {
@@ -81,7 +87,10 @@ describe('MentionsService', () => {
       // Old mentions removed first
       expect(mockMentionRepo.delete).toHaveBeenCalledWith({ commentId: 10 });
       // New mentions saved
-      expect(mockMentionRepo.save).toHaveBeenCalledWith({ commentId: 10, userId: 5 });
+      expect(mockMentionRepo.save).toHaveBeenCalledWith({
+        commentId: 10,
+        userId: 5,
+      });
       // Verify delete-then-save ordering via Jest invocation call order
       const deleteOrder = mockMentionRepo.delete.mock.invocationCallOrder[0];
       const saveOrder = mockMentionRepo.save.mock.invocationCallOrder[0];

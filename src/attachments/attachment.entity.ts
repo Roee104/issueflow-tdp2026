@@ -6,7 +6,15 @@
  * Allowed file types: image/png, image/jpeg, application/pdf, text/plain.
  * Maximum file size: 10 MB — enforced at the service layer before saving.
  */
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Ticket } from '../tickets/ticket.entity';
 
 @Entity('attachments')

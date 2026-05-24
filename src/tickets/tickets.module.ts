@@ -21,7 +21,9 @@ import { TicketsEscalationService } from './tickets-escalation.service';
 import { TicketsService } from './tickets.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Ticket, Comment, TicketDependency, User])],
+  imports: [
+    TypeOrmModule.forFeature([Ticket, Comment, TicketDependency, User]),
+  ],
   controllers: [TicketsController],
   providers: [TicketsService, TicketsEscalationService],
   exports: [TicketsService],

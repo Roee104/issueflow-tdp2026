@@ -70,23 +70,35 @@ describe('ProjectsService', () => {
       // Comments of both tickets should be soft-deleted
       expect(mockCommentRepo.update).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({ isDeleted: true, deletedAt: expect.any(Date) }),
+        expect.objectContaining({
+          isDeleted: true,
+          deletedAt: expect.any(Date),
+        }),
       );
 
       // All non-deleted tickets of the project should be soft-deleted
       expect(mockTicketRepo.update).toHaveBeenCalledWith(
         { projectId: 1, isDeleted: false },
-        expect.objectContaining({ isDeleted: true, deletedAt: expect.any(Date) }),
+        expect.objectContaining({
+          isDeleted: true,
+          deletedAt: expect.any(Date),
+        }),
       );
 
       // The project itself should be soft-deleted
       expect(mockProjectRepo.update).toHaveBeenCalledWith(
         1,
-        expect.objectContaining({ isDeleted: true, deletedAt: expect.any(Date) }),
+        expect.objectContaining({
+          isDeleted: true,
+          deletedAt: expect.any(Date),
+        }),
       );
 
       expect(mockAuditLogsService.log).toHaveBeenCalledWith(
-        expect.objectContaining({ action: AuditAction.DELETE, actor: AuditActor.USER }),
+        expect.objectContaining({
+          action: AuditAction.DELETE,
+          actor: AuditActor.USER,
+        }),
       );
     });
 
@@ -110,7 +122,9 @@ describe('ProjectsService', () => {
 
   describe('restore – cascade restore', () => {
     it('should restore all tickets and their comments when a project is restored', async () => {
-      mockProjectRepo.findOne.mockResolvedValue(makeProject({ isDeleted: true }));
+      mockProjectRepo.findOne.mockResolvedValue(
+        makeProject({ isDeleted: true }),
+      );
 
       const tickets = [{ id: 10 }, { id: 11 }];
       mockTicketRepo.find.mockResolvedValue(tickets);
@@ -139,7 +153,10 @@ describe('ProjectsService', () => {
       );
 
       expect(mockAuditLogsService.log).toHaveBeenCalledWith(
-        expect.objectContaining({ action: AuditAction.RESTORE, actor: AuditActor.USER }),
+        expect.objectContaining({
+          action: AuditAction.RESTORE,
+          actor: AuditActor.USER,
+        }),
       );
     });
 

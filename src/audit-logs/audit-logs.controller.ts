@@ -3,7 +3,13 @@
  * Provides a single GET endpoint with optional filters to query
  * the append-only audit trail of all state-changing actions in the system.
  */
-import { BadRequestException, Controller, Get, ParseEnumPipe, Query } from '@nestjs/common';
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  ParseEnumPipe,
+  Query,
+} from '@nestjs/common';
 import { AuditAction, AuditActor, AuditEntityType } from './audit-log.entity';
 import { AuditLogsService } from './audit-logs.service';
 
@@ -44,6 +50,11 @@ export class AuditLogsController {
       }
     }
 
-    return this.auditLogsService.findAll({ entityType, entityId: parsedEntityId, action, actor });
+    return this.auditLogsService.findAll({
+      entityType,
+      entityId: parsedEntityId,
+      action,
+      actor,
+    });
   }
 }

@@ -6,7 +6,13 @@
  * Every create, update, delete, restore, and system action (auto-assignment,
  * escalation) is recorded here for full transparency and traceability.
  */
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { User } from '../users/user.entity';
 
 /** All possible state-changing actions that are recorded in the audit log. */

@@ -76,7 +76,11 @@ export class MentionsService {
 
     const userIds = mentions.map((m) => m.userId);
     const users = await this.userRepo.find({ where: { id: In(userIds) } });
-    return users.map((u) => ({ id: u.id, username: u.username, fullName: u.fullName }));
+    return users.map((u) => ({
+      id: u.id,
+      username: u.username,
+      fullName: u.fullName,
+    }));
   }
 
   /**
@@ -90,7 +94,9 @@ export class MentionsService {
    * @throws NotFoundException if the user does not exist or is soft-deleted
    */
   async getMentionsForUser(userId: number, page: number, pageSize: number) {
-    const user = await this.userRepo.findOne({ where: { id: userId, isDeleted: false } });
+    const user = await this.userRepo.findOne({
+      where: { id: userId, isDeleted: false },
+    });
     if (!user) throw new NotFoundException(`User with id ${userId} not found`);
 
     const qb = this.commentRepo

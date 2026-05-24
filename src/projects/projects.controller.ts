@@ -80,7 +80,10 @@ export class ProjectsController {
    * @throws BadRequestException if ownerId does not reference a valid user
    */
   @Post()
-  create(@Body() dto: CreateProjectDto, @CurrentUser() user: { userId: number }) {
+  create(
+    @Body() dto: CreateProjectDto,
+    @CurrentUser() user: { userId: number },
+  ) {
     return this.projectsService.create(dto, user.userId);
   }
 

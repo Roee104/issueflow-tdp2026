@@ -4,10 +4,18 @@
  * can transition to DONE. Enforces five validation rules on every new dependency:
  * self-reference, cross-project, duplicate, and circular dependency detection.
  */
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import { AuditAction, AuditActor, AuditEntityType } from '../audit-logs/audit-log.entity';
+import {
+  AuditAction,
+  AuditActor,
+  AuditEntityType,
+} from '../audit-logs/audit-log.entity';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { Ticket } from '../tickets/ticket.entity';
 import { TicketDependency } from './ticket-dependency.entity';
@@ -37,29 +45,45 @@ export class DependenciesService {
    * @throws BadRequestException for any validation failure
    * @throws NotFoundException if either ticket does not exist or is soft-deleted
    */
-  async add(ticketId: number, blockerId: number, performedBy: number): Promise<void> {
+  async add(
+    ticketId: number,
+    blockerId: number,
+    performedBy: number,
+  ): Promise<void> {
     if (ticketId === blockerId) {
       throw new BadRequestException('A ticket cannot block itself');
     }
 
-    const ticket = await this.ticketRepo.findOne({ where: { id: ticketId, isDeleted: false } });
-    if (!ticket) throw new NotFoundException(`Ticket with id ${ticketId} not found`);
+    const ticket = await this.ticketRepo.findOne({
+      where: { id: ticketId, isDeleted: false },
+    });
+    if (!ticket)
+      throw new NotFoundException(`Ticket with id ${ticketId} not found`);
 
-    const blocker = await this.ticketRepo.findOne({ where: { id: blockerId, isDeleted: false } });
-    if (!blocker) throw new NotFoundException(`Ticket with id ${blockerId} not found`);
+    const blocker = await this.ticketRepo.findOne({
+      where: { id: blockerId, isDeleted: false },
+    });
+    if (!blocker)
+      throw new NotFoundException(`Ticket with id ${blockerId} not found`);
 
     // Dependencies across projects are not meaningful — tickets are scoped to a project
     if (ticket.projectId !== blocker.projectId) {
-      throw new BadRequestException('Both tickets must belong to the same project');
+      throw new BadRequestException(
+        'Both tickets must belong to the same project',
+      );
     }
 
-    const existing = await this.depRepo.findOne({ where: { ticketId, blockerId } });
+    const existing = await this.depRepo.findOne({
+      where: { ticketId, blockerId },
+    });
     if (existing) {
       throw new BadRequestException('This dependency already exists');
     }
 
     if (await this.wouldCreateCycle(ticketId, blockerId)) {
-      throw new BadRequestException('Adding this dependency would create a circular dependency');
+      throw new BadRequestException(
+        'Adding this dependency would create a circular dependency',
+      );
     }
 
     await this.depRepo.save({ ticketId, blockerId });
@@ -81,8 +105,11 @@ export class DependenciesService {
    * @throws NotFoundException if the ticket does not exist or is soft-deleted
    */
   async findAll(ticketId: number) {
-    const ticket = await this.ticketRepo.findOne({ where: { id: ticketId, isDeleted: false } });
-    if (!ticket) throw new NotFoundException(`Ticket with id ${ticketId} not found`);
+    const ticket = await this.ticketRepo.findOne({
+      where: { id: ticketId, isDeleted: false },
+    });
+    if (!ticket)
+      throw new NotFoundException(`Ticket with id ${ticketId} not found`);
 
     const deps = await this.depRepo.find({ where: { ticketId } });
     if (deps.length === 0) return [];
@@ -92,7 +119,11 @@ export class DependenciesService {
       where: { id: In(blockerIds), isDeleted: false },
     });
 
-    return blockers.map((b) => ({ id: b.id, title: b.title, status: b.status }));
+    return blockers.map((b) => ({
+      id: b.id,
+      title: b.title,
+      status: b.status,
+    }));
   }
 
   /**
@@ -104,7 +135,11 @@ export class DependenciesService {
    * @param performedBy - The ID of the authenticated user (for audit logging)
    * @throws NotFoundException if the dependency does not exist
    */
-  async remove(ticketId: number, blockerId: number, performedBy: number): Promise<void> {
+  async remove(
+    ticketId: number,
+    blockerId: number,
+    performedBy: number,
+  ): Promise<void> {
     const dep = await this.depRepo.findOne({ where: { ticketId, blockerId } });
     if (!dep) throw new NotFoundException(`Dependency not found`);
 
@@ -131,7 +166,10 @@ export class DependenciesService {
    * @param newBlockerId - The proposed new blocker
    * @returns true if adding the dependency would create a cycle
    */
-  private async wouldCreateCycle(ticketId: number, newBlockerId: number): Promise<boolean> {
+  private async wouldCreateCycle(
+    ticketId: number,
+    newBlockerId: number,
+  ): Promise<boolean> {
     const visited = new Set<number>();
     const queue: number[] = [newBlockerId];
 

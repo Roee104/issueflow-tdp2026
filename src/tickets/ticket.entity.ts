@@ -11,7 +11,15 @@
  * The escalation cron job promotes priority for overdue non-DONE tickets:
  * LOW→MEDIUM→HIGH→CRITICAL. Reaching CRITICAL also sets isOverdue=true.
  */
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Project } from '../projects/project.entity';
 import { User } from '../users/user.entity';
 

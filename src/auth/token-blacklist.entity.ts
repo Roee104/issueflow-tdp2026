@@ -6,7 +6,14 @@
  * The token column is indexed for fast lookups on every authenticated request.
  * Expired entries are cleaned up daily by AuthService.cleanupBlacklist().
  */
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Index,
+} from 'typeorm';
 
 @Entity('token_blacklist')
 export class TokenBlacklist {

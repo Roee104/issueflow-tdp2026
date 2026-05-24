@@ -6,7 +6,12 @@
  * Always used in combination with JwtAuthGuard — the global guard runs first
  * to authenticate the user, then RolesGuard checks the role.
  */
-import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import { UserRole } from '../users/user.entity';
 
 @Injectable()

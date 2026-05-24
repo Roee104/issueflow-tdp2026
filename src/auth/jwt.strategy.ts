@@ -29,6 +29,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
    * @returns The minimal user identity used throughout the request lifecycle
    */
   async validate(payload: any) {
-    return { userId: payload.userId, username: payload.username, role: payload.role };
+    return {
+      userId: payload.userId,
+      username: payload.username,
+      role: payload.role,
+    };
   }
 }

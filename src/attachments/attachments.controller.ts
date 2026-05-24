@@ -21,7 +21,12 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AttachmentsService } from './attachments.service';
 
 /** MIME types permitted for upload — all others are rejected with 400. */
-const ALLOWED_MIME_TYPES = ['image/png', 'image/jpeg', 'application/pdf', 'text/plain'];
+const ALLOWED_MIME_TYPES = [
+  'image/png',
+  'image/jpeg',
+  'application/pdf',
+  'text/plain',
+];
 
 /**
  * Multer configuration for disk-based file storage.

@@ -16,7 +16,7 @@
  * - Empty query result produces no updates
  * - Correct TypeORM filter operators passed to the find query
  */
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import { AuditAction, AuditActor } from '../audit-logs/audit-log.entity';
 import { UserRole } from '../users/user.entity';
 import { TicketsEscalationService } from './tickets-escalation.service';
@@ -82,7 +82,9 @@ describe('TicketsService', () => {
     mockCommentRepo = { update: jest.fn() };
     mockDepRepo = { find: jest.fn() };
     mockUserRepo = { find: jest.fn() };
-    mockDataSource = { createQueryRunner: jest.fn().mockReturnValue(mockQueryRunner) };
+    mockDataSource = {
+      createQueryRunner: jest.fn().mockReturnValue(mockQueryRunner),
+    };
     mockAuditLogsService = { log: jest.fn().mockResolvedValue(undefined) };
 
     service = new TicketsService(
@@ -99,7 +101,10 @@ describe('TicketsService', () => {
 
   describe('update – forward status transitions', () => {
     /** Sets up the query runner mock for a status transition test. */
-    const setupQueryRunner = (currentStatus: TicketStatus, newStatus: TicketStatus) => {
+    const setupQueryRunner = (
+      currentStatus: TicketStatus,
+      newStatus: TicketStatus,
+    ) => {
       mockQueryRunner.manager.findOne.mockResolvedValueOnce(
         makeTicket({ status: currentStatus }),
       );
@@ -171,8 +176,12 @@ describe('TicketsService', () => {
     it('should throw 400 when a blocker is not DONE', async () => {
       mockQueryRunner.manager.findOne
         .mockResolvedValueOnce(makeTicket({ status: TicketStatus.IN_REVIEW }))
-        .mockResolvedValueOnce(makeTicket({ id: 2, status: TicketStatus.IN_PROGRESS }));
-      mockQueryRunner.manager.find.mockResolvedValueOnce([{ ticketId: 1, blockerId: 2 }]);
+        .mockResolvedValueOnce(
+          makeTicket({ id: 2, status: TicketStatus.IN_PROGRESS }),
+        );
+      mockQueryRunner.manager.find.mockResolvedValueOnce([
+        { ticketId: 1, blockerId: 2 },
+      ]);
 
       await expect(
         service.update(1, { status: TicketStatus.DONE }, 1),
@@ -182,8 +191,12 @@ describe('TicketsService', () => {
     it('should succeed when all blockers are DONE', async () => {
       mockQueryRunner.manager.findOne
         .mockResolvedValueOnce(makeTicket({ status: TicketStatus.IN_REVIEW }))
-        .mockResolvedValueOnce(makeTicket({ id: 2, status: TicketStatus.DONE }));
-      mockQueryRunner.manager.find.mockResolvedValueOnce([{ ticketId: 1, blockerId: 2 }]);
+        .mockResolvedValueOnce(
+          makeTicket({ id: 2, status: TicketStatus.DONE }),
+        );
+      mockQueryRunner.manager.find.mockResolvedValueOnce([
+        { ticketId: 1, blockerId: 2 },
+      ]);
       mockQueryRunner.manager.update.mockResolvedValue(undefined);
 
       await expect(
@@ -221,7 +234,10 @@ describe('TicketsService', () => {
 
       expect(result.assigneeId).toBe(2);
       expect(mockAuditLogsService.log).toHaveBeenCalledWith(
-        expect.objectContaining({ action: AuditAction.AUTO_ASSIGN, actor: AuditActor.SYSTEM }),
+        expect.objectContaining({
+          action: AuditAction.AUTO_ASSIGN,
+          actor: AuditActor.SYSTEM,
+        }),
       );
     });
 
@@ -320,12 +336,18 @@ describe('TicketsService', () => {
       // Comments must be soft-deleted first
       expect(mockCommentRepo.update).toHaveBeenCalledWith(
         { ticketId: 1, isDeleted: false },
-        expect.objectContaining({ isDeleted: true, deletedAt: expect.any(Date) }),
+        expect.objectContaining({
+          isDeleted: true,
+          deletedAt: expect.any(Date),
+        }),
       );
       // Then the ticket itself
       expect(mockTicketRepo.update).toHaveBeenCalledWith(
         1,
-        expect.objectContaining({ isDeleted: true, deletedAt: expect.any(Date) }),
+        expect.objectContaining({
+          isDeleted: true,
+          deletedAt: expect.any(Date),
+        }),
       );
     });
   });
@@ -349,28 +371,42 @@ describe('TicketsEscalationService', () => {
   });
 
   it('should escalate LOW → MEDIUM', async () => {
-    mockTicketRepo.find.mockResolvedValue([makeTicket({ priority: TicketPriority.LOW })]);
+    mockTicketRepo.find.mockResolvedValue([
+      makeTicket({ priority: TicketPriority.LOW }),
+    ]);
     mockTicketRepo.update.mockResolvedValue(undefined);
 
     await escalationService.escalate();
 
-    expect(mockTicketRepo.update).toHaveBeenCalledWith(1, { priority: TicketPriority.MEDIUM });
+    expect(mockTicketRepo.update).toHaveBeenCalledWith(1, {
+      priority: TicketPriority.MEDIUM,
+    });
     expect(mockAuditLogsService.log).toHaveBeenCalledWith(
-      expect.objectContaining({ action: AuditAction.ESCALATE, actor: AuditActor.SYSTEM, performedBy: null }),
+      expect.objectContaining({
+        action: AuditAction.ESCALATE,
+        actor: AuditActor.SYSTEM,
+        performedBy: null,
+      }),
     );
   });
 
   it('should escalate MEDIUM → HIGH', async () => {
-    mockTicketRepo.find.mockResolvedValue([makeTicket({ priority: TicketPriority.MEDIUM })]);
+    mockTicketRepo.find.mockResolvedValue([
+      makeTicket({ priority: TicketPriority.MEDIUM }),
+    ]);
     mockTicketRepo.update.mockResolvedValue(undefined);
 
     await escalationService.escalate();
 
-    expect(mockTicketRepo.update).toHaveBeenCalledWith(1, { priority: TicketPriority.HIGH });
+    expect(mockTicketRepo.update).toHaveBeenCalledWith(1, {
+      priority: TicketPriority.HIGH,
+    });
   });
 
   it('should escalate HIGH → CRITICAL and set isOverdue=true', async () => {
-    mockTicketRepo.find.mockResolvedValue([makeTicket({ priority: TicketPriority.HIGH })]);
+    mockTicketRepo.find.mockResolvedValue([
+      makeTicket({ priority: TicketPriority.HIGH }),
+    ]);
     mockTicketRepo.update.mockResolvedValue(undefined);
 
     await escalationService.escalate();
@@ -382,7 +418,9 @@ describe('TicketsEscalationService', () => {
   });
 
   it('should skip CRITICAL tickets (idempotent — never escalate further)', async () => {
-    mockTicketRepo.find.mockResolvedValue([makeTicket({ priority: TicketPriority.CRITICAL })]);
+    mockTicketRepo.find.mockResolvedValue([
+      makeTicket({ priority: TicketPriority.CRITICAL }),
+    ]);
 
     await escalationService.escalate();
 

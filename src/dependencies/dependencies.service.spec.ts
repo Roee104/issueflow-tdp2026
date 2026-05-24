@@ -7,7 +7,7 @@
  * - Circular dependency detection via BFS
  * - Valid dependency creation and audit logging
  */
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import { AuditAction, AuditActor } from '../audit-logs/audit-log.entity';
 import { DependenciesService } from './dependencies.service';
 
@@ -93,7 +93,10 @@ describe('DependenciesService', () => {
 
       await expect(service.add(1, 2, 1)).resolves.not.toThrow();
 
-      expect(mockDepRepo.save).toHaveBeenCalledWith({ ticketId: 1, blockerId: 2 });
+      expect(mockDepRepo.save).toHaveBeenCalledWith({
+        ticketId: 1,
+        blockerId: 2,
+      });
       expect(mockAuditLogsService.log).toHaveBeenCalledWith(
         expect.objectContaining({
           action: AuditAction.ADD_DEPENDENCY,

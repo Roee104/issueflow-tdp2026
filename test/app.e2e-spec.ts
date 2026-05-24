@@ -6,7 +6,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { getDataSourceToken } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-import request from 'supertest'
+import request from 'supertest';
 import { AppModule } from '../src/app.module';
 
 jest.setTimeout(60000);
@@ -45,8 +45,12 @@ const createUser = async (overrides: Record<string, any> = {}) => {
   return (await api().post('/users').send(body)).body;
 };
 
-const login = async (username: string, password = 'password123'): Promise<string> =>
-  (await api().post('/auth/login').send({ username, password })).body.accessToken;
+const login = async (
+  username: string,
+  password = 'password123',
+): Promise<string> =>
+  (await api().post('/auth/login').send({ username, password })).body
+    .accessToken;
 
 // ─── Suite ────────────────────────────────────────────────────────────────────
 
@@ -55,11 +59,17 @@ describe('IssueFlow E2E', () => {
   let ds: DataSource;
 
   beforeAll(async () => {
-    const fixture = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    const fixture = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
 
     app = fixture.createNestApplication();
     app.useGlobalPipes(
-      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
     );
     await app.init();
 
@@ -81,7 +91,11 @@ describe('IssueFlow E2E', () => {
 
     it('register → login → GET /auth/me returns profile → logout → same token returns 401', async () => {
       // Register
-      const user = await createUser({ username: 'jdoe', email: 'jdoe@test.com', fullName: 'John Doe' });
+      const user = await createUser({
+        username: 'jdoe',
+        email: 'jdoe@test.com',
+        fullName: 'John Doe',
+      });
       expect(user.id).toBeDefined();
       expect(user).not.toHaveProperty('password');
 
@@ -96,7 +110,10 @@ describe('IssueFlow E2E', () => {
       expect(loginRes.body.expiresIn).toBe(3600);
 
       // GET /auth/me
-      const meRes = await api().get('/auth/me').set(auth(accessToken)).expect(200);
+      const meRes = await api()
+        .get('/auth/me')
+        .set(auth(accessToken))
+        .expect(200);
       expect(meRes.body.username).toBe('jdoe');
       expect(meRes.body.role).toBe('DEVELOPER');
       expect(meRes.body).not.toHaveProperty('password');
@@ -110,7 +127,10 @@ describe('IssueFlow E2E', () => {
 
     it('login with wrong password returns 401', async () => {
       await createUser({ username: 'alice', email: 'alice@test.com' });
-      await api().post('/auth/login').send({ username: 'alice', password: 'wrong' }).expect(401);
+      await api()
+        .post('/auth/login')
+        .send({ username: 'alice', password: 'wrong' })
+        .expect(401);
     });
 
     it('request to protected endpoint without token returns 401', async () => {
@@ -125,7 +145,11 @@ describe('IssueFlow E2E', () => {
 
     beforeEach(async () => {
       await cleanDb(ds);
-      await createUser({ username: 'admin', email: 'admin@test.com', role: 'ADMIN' });
+      await createUser({
+        username: 'admin',
+        email: 'admin@test.com',
+        role: 'ADMIN',
+      });
       adminToken = await login('admin');
     });
 
@@ -162,14 +186,20 @@ describe('IssueFlow E2E', () => {
     });
 
     it('soft-deleted user token returns 401 on all subsequent requests', async () => {
-      const victim = await createUser({ username: 'victim', email: 'victim@test.com' });
+      const victim = await createUser({
+        username: 'victim',
+        email: 'victim@test.com',
+      });
       const victimToken = await login('victim');
 
       // Token is valid before deletion
       await api().get('/auth/me').set(auth(victimToken)).expect(200);
 
       // Admin soft-deletes the user
-      await api().delete(`/users/${victim.id}`).set(auth(adminToken)).expect(200);
+      await api()
+        .delete(`/users/${victim.id}`)
+        .set(auth(adminToken))
+        .expect(200);
 
       // Token is now rejected because findByIdInternal filters isDeleted=false
       await api().get('/auth/me').set(auth(victimToken)).expect(401);
@@ -185,8 +215,16 @@ describe('IssueFlow E2E', () => {
 
     beforeEach(async () => {
       await cleanDb(ds);
-      const admin = await createUser({ username: 'admin', email: 'admin@test.com', role: 'ADMIN' });
-      const dev = await createUser({ username: 'dev', email: 'dev@test.com', role: 'DEVELOPER' });
+      const admin = await createUser({
+        username: 'admin',
+        email: 'admin@test.com',
+        role: 'ADMIN',
+      });
+      await createUser({
+        username: 'dev',
+        email: 'dev@test.com',
+        role: 'DEVELOPER',
+      });
       ownerId = admin.id;
       adminToken = await login('admin');
       devToken = await login('dev');
@@ -194,40 +232,64 @@ describe('IssueFlow E2E', () => {
 
     it('create → GET → PATCH → soft delete → gone from list → GET /projects/deleted → restore → visible again', async () => {
       // Create
-      const created = (await api()
-        .post('/projects')
-        .set(auth(adminToken))
-        .send({ name: 'Alpha', description: 'First project', ownerId })
-        .expect(201)).body;
+      const created = (
+        await api()
+          .post('/projects')
+          .set(auth(adminToken))
+          .send({ name: 'Alpha', description: 'First project', ownerId })
+          .expect(201)
+      ).body;
       const projectId = created.id;
       expect(created.name).toBe('Alpha');
 
       // GET by id
-      const got = (await api().get(`/projects/${projectId}`).set(auth(adminToken)).expect(200)).body;
+      const got = (
+        await api()
+          .get(`/projects/${projectId}`)
+          .set(auth(adminToken))
+          .expect(200)
+      ).body;
       expect(got.id).toBe(projectId);
 
       // PATCH
-      await api().patch(`/projects/${projectId}`).set(auth(adminToken))
-        .send({ name: 'Alpha Updated' }).expect(200);
-      expect((await api().get(`/projects/${projectId}`).set(auth(adminToken))).body.name)
-        .toBe('Alpha Updated');
+      await api()
+        .patch(`/projects/${projectId}`)
+        .set(auth(adminToken))
+        .send({ name: 'Alpha Updated' })
+        .expect(200);
+      expect(
+        (await api().get(`/projects/${projectId}`).set(auth(adminToken))).body
+          .name,
+      ).toBe('Alpha Updated');
 
       // Soft delete
-      await api().delete(`/projects/${projectId}`).set(auth(adminToken)).expect(200);
+      await api()
+        .delete(`/projects/${projectId}`)
+        .set(auth(adminToken))
+        .expect(200);
 
       // Gone from standard list
-      const list = (await api().get('/projects').set(auth(adminToken)).expect(200)).body;
+      const list = (
+        await api().get('/projects').set(auth(adminToken)).expect(200)
+      ).body;
       expect(list.find((p: any) => p.id === projectId)).toBeUndefined();
 
       // Visible in deleted list (ADMIN only)
-      const deletedList = (await api().get('/projects/deleted').set(auth(adminToken)).expect(200)).body;
+      const deletedList = (
+        await api().get('/projects/deleted').set(auth(adminToken)).expect(200)
+      ).body;
       expect(deletedList.find((p: any) => p.id === projectId)).toBeDefined();
 
       // Restore
-      await api().post(`/projects/${projectId}/restore`).set(auth(adminToken)).expect(200);
+      await api()
+        .post(`/projects/${projectId}/restore`)
+        .set(auth(adminToken))
+        .expect(200);
 
       // Visible again in standard list
-      const restoredList = (await api().get('/projects').set(auth(adminToken)).expect(200)).body;
+      const restoredList = (
+        await api().get('/projects').set(auth(adminToken)).expect(200)
+      ).body;
       expect(restoredList.find((p: any) => p.id === projectId)).toBeDefined();
     });
 
@@ -253,59 +315,126 @@ describe('IssueFlow E2E', () => {
 
     beforeEach(async () => {
       await cleanDb(ds);
-      const user = await createUser({ username: 'dev', email: 'dev@test.com', role: 'DEVELOPER' });
+      const user = await createUser({
+        username: 'dev',
+        email: 'dev@test.com',
+        role: 'DEVELOPER',
+      });
       userId = user.id;
       token = await login('dev');
-      const project = (await api()
-        .post('/projects')
-        .set(auth(token))
-        .send({ name: 'P', description: 'D', ownerId: userId })
-        .expect(201)).body;
+      const project = (
+        await api()
+          .post('/projects')
+          .set(auth(token))
+          .send({ name: 'P', description: 'D', ownerId: userId })
+          .expect(201)
+      ).body;
       projectId = project.id;
     });
 
     it('forward transitions TODO→IN_PROGRESS→IN_REVIEW→DONE all succeed', async () => {
-      const ticket = (await api()
-        .post('/tickets')
-        .set(auth(token))
-        .send({ title: 'T', description: 'D', status: 'TODO', priority: 'LOW', type: 'BUG', projectId, assigneeId: userId })
-        .expect(201)).body;
+      const ticket = (
+        await api()
+          .post('/tickets')
+          .set(auth(token))
+          .send({
+            title: 'T',
+            description: 'D',
+            status: 'TODO',
+            priority: 'LOW',
+            type: 'BUG',
+            projectId,
+            assigneeId: userId,
+          })
+          .expect(201)
+      ).body;
       const id = ticket.id;
 
-      await api().patch(`/tickets/${id}`).set(auth(token)).send({ status: 'IN_PROGRESS' }).expect(200);
-      await api().patch(`/tickets/${id}`).set(auth(token)).send({ status: 'IN_REVIEW' }).expect(200);
-      await api().patch(`/tickets/${id}`).set(auth(token)).send({ status: 'DONE' }).expect(200);
+      await api()
+        .patch(`/tickets/${id}`)
+        .set(auth(token))
+        .send({ status: 'IN_PROGRESS' })
+        .expect(200);
+      await api()
+        .patch(`/tickets/${id}`)
+        .set(auth(token))
+        .send({ status: 'IN_REVIEW' })
+        .expect(200);
+      await api()
+        .patch(`/tickets/${id}`)
+        .set(auth(token))
+        .send({ status: 'DONE' })
+        .expect(200);
 
-      const final = (await api().get(`/tickets/${id}`).set(auth(token)).expect(200)).body;
+      const final = (
+        await api().get(`/tickets/${id}`).set(auth(token)).expect(200)
+      ).body;
       expect(final.status).toBe('DONE');
     });
 
     it('backward status transition returns 400', async () => {
-      const ticket = (await api()
-        .post('/tickets')
-        .set(auth(token))
-        .send({ title: 'T', description: 'D', status: 'IN_PROGRESS', priority: 'LOW', type: 'BUG', projectId, assigneeId: userId })
-        .expect(201)).body;
+      const ticket = (
+        await api()
+          .post('/tickets')
+          .set(auth(token))
+          .send({
+            title: 'T',
+            description: 'D',
+            status: 'IN_PROGRESS',
+            priority: 'LOW',
+            type: 'BUG',
+            projectId,
+            assigneeId: userId,
+          })
+          .expect(201)
+      ).body;
 
-      await api().patch(`/tickets/${ticket.id}`).set(auth(token)).send({ status: 'TODO' }).expect(400);
+      await api()
+        .patch(`/tickets/${ticket.id}`)
+        .set(auth(token))
+        .send({ status: 'TODO' })
+        .expect(400);
     });
 
     it('update on a DONE ticket returns 400', async () => {
-      const ticket = (await api()
-        .post('/tickets')
-        .set(auth(token))
-        .send({ title: 'T', description: 'D', status: 'DONE', priority: 'LOW', type: 'BUG', projectId, assigneeId: userId })
-        .expect(201)).body;
+      const ticket = (
+        await api()
+          .post('/tickets')
+          .set(auth(token))
+          .send({
+            title: 'T',
+            description: 'D',
+            status: 'DONE',
+            priority: 'LOW',
+            type: 'BUG',
+            projectId,
+            assigneeId: userId,
+          })
+          .expect(201)
+      ).body;
 
-      await api().patch(`/tickets/${ticket.id}`).set(auth(token)).send({ title: 'New title' }).expect(400);
+      await api()
+        .patch(`/tickets/${ticket.id}`)
+        .set(auth(token))
+        .send({ title: 'New title' })
+        .expect(400);
     });
 
     it('ticket created without assigneeId is auto-assigned to the existing developer', async () => {
-      const ticket = (await api()
-        .post('/tickets')
-        .set(auth(token))
-        .send({ title: 'T', description: 'D', status: 'TODO', priority: 'LOW', type: 'BUG', projectId })
-        .expect(201)).body;
+      const ticket = (
+        await api()
+          .post('/tickets')
+          .set(auth(token))
+          .send({
+            title: 'T',
+            description: 'D',
+            status: 'TODO',
+            priority: 'LOW',
+            type: 'BUG',
+            projectId,
+          })
+          .expect(201)
+      ).body;
 
       // The only DEVELOPER in the system should be auto-assigned
       expect(ticket.assigneeId).toBe(userId);
@@ -320,26 +449,38 @@ describe('IssueFlow E2E', () => {
     let userId: number;
 
     const makeTicket = async (status = 'TODO') =>
-      (await api().post('/tickets').set(auth(token)).send({
-        title: 'T',
-        description: 'D',
-        status,
-        priority: 'LOW',
-        type: 'BUG',
-        projectId,
-        assigneeId: userId,
-      }).expect(201)).body;
+      (
+        await api()
+          .post('/tickets')
+          .set(auth(token))
+          .send({
+            title: 'T',
+            description: 'D',
+            status,
+            priority: 'LOW',
+            type: 'BUG',
+            projectId,
+            assigneeId: userId,
+          })
+          .expect(201)
+      ).body;
 
     beforeEach(async () => {
       await cleanDb(ds);
-      const user = await createUser({ username: 'dev', email: 'dev@test.com', role: 'DEVELOPER' });
+      const user = await createUser({
+        username: 'dev',
+        email: 'dev@test.com',
+        role: 'DEVELOPER',
+      });
       userId = user.id;
       token = await login('dev');
-      const project = (await api()
-        .post('/projects')
-        .set(auth(token))
-        .send({ name: 'P', description: 'D', ownerId: userId })
-        .expect(201)).body;
+      const project = (
+        await api()
+          .post('/projects')
+          .set(auth(token))
+          .send({ name: 'P', description: 'D', ownerId: userId })
+          .expect(201)
+      ).body;
       projectId = project.id;
     });
 
@@ -355,15 +496,35 @@ describe('IssueFlow E2E', () => {
         .expect(200);
 
       // Cannot transition blocked to DONE while blocker is unresolved
-      await api().patch(`/tickets/${blocked.id}`).set(auth(token)).send({ status: 'DONE' }).expect(400);
+      await api()
+        .patch(`/tickets/${blocked.id}`)
+        .set(auth(token))
+        .send({ status: 'DONE' })
+        .expect(400);
 
       // Resolve blocker through forward transitions
-      await api().patch(`/tickets/${blocker.id}`).set(auth(token)).send({ status: 'IN_PROGRESS' }).expect(200);
-      await api().patch(`/tickets/${blocker.id}`).set(auth(token)).send({ status: 'IN_REVIEW' }).expect(200);
-      await api().patch(`/tickets/${blocker.id}`).set(auth(token)).send({ status: 'DONE' }).expect(200);
+      await api()
+        .patch(`/tickets/${blocker.id}`)
+        .set(auth(token))
+        .send({ status: 'IN_PROGRESS' })
+        .expect(200);
+      await api()
+        .patch(`/tickets/${blocker.id}`)
+        .set(auth(token))
+        .send({ status: 'IN_REVIEW' })
+        .expect(200);
+      await api()
+        .patch(`/tickets/${blocker.id}`)
+        .set(auth(token))
+        .send({ status: 'DONE' })
+        .expect(200);
 
       // Now blocked can go DONE
-      await api().patch(`/tickets/${blocked.id}`).set(auth(token)).send({ status: 'DONE' }).expect(200);
+      await api()
+        .patch(`/tickets/${blocked.id}`)
+        .set(auth(token))
+        .send({ status: 'DONE' })
+        .expect(200);
     });
 
     it('self-dependency returns 400', async () => {
@@ -405,23 +566,44 @@ describe('IssueFlow E2E', () => {
 
     beforeEach(async () => {
       await cleanDb(ds);
-      const author = await createUser({ username: 'author', email: 'author@test.com', role: 'DEVELOPER' });
-      const mentioned = await createUser({ username: 'jdoe', email: 'jdoe@test.com', fullName: 'John Doe', role: 'DEVELOPER' });
+      const author = await createUser({
+        username: 'author',
+        email: 'author@test.com',
+        role: 'DEVELOPER',
+      });
+      const mentioned = await createUser({
+        username: 'jdoe',
+        email: 'jdoe@test.com',
+        fullName: 'John Doe',
+        role: 'DEVELOPER',
+      });
       authorId = author.id;
       mentionedUserId = mentioned.id;
       token = await login('author');
 
-      const project = (await api()
-        .post('/projects')
-        .set(auth(token))
-        .send({ name: 'P', description: 'D', ownerId: authorId })
-        .expect(201)).body;
+      const project = (
+        await api()
+          .post('/projects')
+          .set(auth(token))
+          .send({ name: 'P', description: 'D', ownerId: authorId })
+          .expect(201)
+      ).body;
 
-      const ticket = (await api()
-        .post('/tickets')
-        .set(auth(token))
-        .send({ title: 'T', description: 'D', status: 'TODO', priority: 'LOW', type: 'BUG', projectId: project.id, assigneeId: authorId })
-        .expect(201)).body;
+      const ticket = (
+        await api()
+          .post('/tickets')
+          .set(auth(token))
+          .send({
+            title: 'T',
+            description: 'D',
+            status: 'TODO',
+            priority: 'LOW',
+            type: 'BUG',
+            projectId: project.id,
+            assigneeId: authorId,
+          })
+          .expect(201)
+      ).body;
       ticketId = ticket.id;
     });
 
@@ -434,7 +616,9 @@ describe('IssueFlow E2E', () => {
 
       expect(res.body.content).toContain('@jdoe');
       expect(res.body.mentionedUsers).toBeInstanceOf(Array);
-      const mentioned = res.body.mentionedUsers.find((u: any) => u.username === 'jdoe');
+      const mentioned = res.body.mentionedUsers.find(
+        (u: any) => u.username === 'jdoe',
+      );
       expect(mentioned).toBeDefined();
       expect(mentioned.fullName).toBe('John Doe');
       expect(mentioned).not.toHaveProperty('password');
@@ -454,7 +638,9 @@ describe('IssueFlow E2E', () => {
 
       expect(mentionRes.body.total).toBeGreaterThan(0);
       expect(mentionRes.body.page).toBe(1);
-      const found = mentionRes.body.data.find((c: any) => c.id === commentRes.body.id);
+      const found = mentionRes.body.data.find(
+        (c: any) => c.id === commentRes.body.id,
+      );
       expect(found).toBeDefined();
       expect(found.content).toContain('@jdoe');
       expect(found.mentionedUsers.length).toBeGreaterThan(0);
@@ -469,41 +655,65 @@ describe('IssueFlow E2E', () => {
 
     beforeEach(async () => {
       await cleanDb(ds);
-      const admin = await createUser({ username: 'admin', email: 'admin@test.com', role: 'ADMIN' });
+      const admin = await createUser({
+        username: 'admin',
+        email: 'admin@test.com',
+        role: 'ADMIN',
+      });
       ownerId = admin.id;
       adminToken = await login('admin');
     });
 
     it('delete project → tickets hidden from GET /tickets → restore project → tickets visible again', async () => {
-      const project = (await api()
-        .post('/projects')
-        .set(auth(adminToken))
-        .send({ name: 'P', description: 'D', ownerId })
-        .expect(201)).body;
+      const project = (
+        await api()
+          .post('/projects')
+          .set(auth(adminToken))
+          .send({ name: 'P', description: 'D', ownerId })
+          .expect(201)
+      ).body;
 
       // Create a ticket in that project
       await api()
         .post('/tickets')
         .set(auth(adminToken))
-        .send({ title: 'T', description: 'D', status: 'TODO', priority: 'LOW', type: 'BUG', projectId: project.id, assigneeId: ownerId })
+        .send({
+          title: 'T',
+          description: 'D',
+          status: 'TODO',
+          priority: 'LOW',
+          type: 'BUG',
+          projectId: project.id,
+          assigneeId: ownerId,
+        })
         .expect(201);
 
       // Soft delete project cascades to tickets
-      await api().delete(`/projects/${project.id}`).set(auth(adminToken)).expect(200);
-
-      const ticketsAfterDelete = (await api()
-        .get(`/tickets?projectId=${project.id}`)
+      await api()
+        .delete(`/projects/${project.id}`)
         .set(auth(adminToken))
-        .expect(200)).body;
+        .expect(200);
+
+      const ticketsAfterDelete = (
+        await api()
+          .get(`/tickets?projectId=${project.id}`)
+          .set(auth(adminToken))
+          .expect(200)
+      ).body;
       expect(ticketsAfterDelete).toHaveLength(0);
 
       // Restore project cascades ticket restoration
-      await api().post(`/projects/${project.id}/restore`).set(auth(adminToken)).expect(200);
-
-      const ticketsAfterRestore = (await api()
-        .get(`/tickets?projectId=${project.id}`)
+      await api()
+        .post(`/projects/${project.id}/restore`)
         .set(auth(adminToken))
-        .expect(200)).body;
+        .expect(200);
+
+      const ticketsAfterRestore = (
+        await api()
+          .get(`/tickets?projectId=${project.id}`)
+          .set(auth(adminToken))
+          .expect(200)
+      ).body;
       expect(ticketsAfterRestore.length).toBeGreaterThan(0);
     });
   });
@@ -516,7 +726,11 @@ describe('IssueFlow E2E', () => {
 
     beforeEach(async () => {
       await cleanDb(ds);
-      const admin = await createUser({ username: 'admin', email: 'admin@test.com', role: 'ADMIN' });
+      const admin = await createUser({
+        username: 'admin',
+        email: 'admin@test.com',
+        role: 'ADMIN',
+      });
       ownerId = admin.id;
       adminToken = await login('admin');
     });
@@ -528,7 +742,10 @@ describe('IssueFlow E2E', () => {
         .send({ name: 'P', description: 'D', ownerId })
         .expect(201);
 
-      const res = await api().get('/audit-logs').set(auth(adminToken)).expect(200);
+      const res = await api()
+        .get('/audit-logs')
+        .set(auth(adminToken))
+        .expect(200);
       const types = res.body.map((l: any) => l.entityType);
       expect(types).toContain('USER');
       expect(types).toContain('PROJECT');
@@ -545,7 +762,10 @@ describe('IssueFlow E2E', () => {
         .send({ name: 'P', description: 'D', ownerId })
         .expect(201);
 
-      const res = await api().get('/audit-logs?entityType=PROJECT').set(auth(adminToken)).expect(200);
+      const res = await api()
+        .get('/audit-logs?entityType=PROJECT')
+        .set(auth(adminToken))
+        .expect(200);
       expect(res.body.length).toBeGreaterThan(0);
       for (const entry of res.body) {
         expect(entry.entityType).toBe('PROJECT');
@@ -553,25 +773,43 @@ describe('IssueFlow E2E', () => {
     });
 
     it('GET /audit-logs?actor=SYSTEM returns only SYSTEM entries triggered by auto-assignment', async () => {
-      const dev = await createUser({ username: 'dev', email: 'dev@test.com', role: 'DEVELOPER' });
-      const project = (await api()
-        .post('/projects')
-        .set(auth(adminToken))
-        .send({ name: 'P', description: 'D', ownerId })
-        .expect(201)).body;
+      const dev = await createUser({
+        username: 'dev',
+        email: 'dev@test.com',
+        role: 'DEVELOPER',
+      });
+      const project = (
+        await api()
+          .post('/projects')
+          .set(auth(adminToken))
+          .send({ name: 'P', description: 'D', ownerId })
+          .expect(201)
+      ).body;
 
       // Create ticket without assigneeId → triggers AUTO_ASSIGN with actor=SYSTEM
       const devToken = await login('dev');
-      const ticket = (await api()
-        .post('/tickets')
-        .set(auth(devToken))
-        .send({ title: 'T', description: 'D', status: 'TODO', priority: 'LOW', type: 'BUG', projectId: project.id })
-        .expect(201)).body;
+      const ticket = (
+        await api()
+          .post('/tickets')
+          .set(auth(devToken))
+          .send({
+            title: 'T',
+            description: 'D',
+            status: 'TODO',
+            priority: 'LOW',
+            type: 'BUG',
+            projectId: project.id,
+          })
+          .expect(201)
+      ).body;
 
       // Auto-assignment should have happened
       expect(ticket.assigneeId).toBe(dev.id);
 
-      const res = await api().get('/audit-logs?actor=SYSTEM').set(auth(adminToken)).expect(200);
+      const res = await api()
+        .get('/audit-logs?actor=SYSTEM')
+        .set(auth(adminToken))
+        .expect(200);
       expect(res.body.length).toBeGreaterThan(0);
       for (const entry of res.body) {
         expect(entry.actor).toBe('SYSTEM');

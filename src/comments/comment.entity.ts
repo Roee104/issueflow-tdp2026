@@ -10,7 +10,15 @@
  * referenced in content, a CommentMention record is created linking the
  * comment to the mentioned user.
  */
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Ticket } from '../tickets/ticket.entity';
 import { User } from '../users/user.entity';
 

@@ -15,7 +15,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cron } from '@nestjs/schedule';
 import { LessThan, Not, Repository } from 'typeorm';
-import { AuditAction, AuditActor, AuditEntityType } from '../audit-logs/audit-log.entity';
+import {
+  AuditAction,
+  AuditActor,
+  AuditEntityType,
+} from '../audit-logs/audit-log.entity';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { Ticket, TicketPriority, TicketStatus } from './ticket.entity';
 
@@ -64,7 +68,7 @@ export class TicketsEscalationService {
     for (const ticket of tickets) {
       const newPriority = PRIORITY_PROMOTION[ticket.priority];
       // No entry in the map means the ticket is already CRITICAL — skip to preserve idempotency
-      if (!newPriority) continue; 
+      if (!newPriority) continue;
 
       const updates: Partial<Ticket> = { priority: newPriority };
       // isOverdue is only set when the ticket first reaches CRITICAL priority

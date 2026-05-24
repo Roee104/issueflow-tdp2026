@@ -77,9 +77,9 @@ describe('JwtAuthGuard', () => {
     mockReflector.getAllAndOverride.mockReturnValue(false);
     mockAuthService.isTokenBlacklisted.mockResolvedValue(true);
 
-    await expect(guard.canActivate(makeContext('blacklisted-token'))).rejects.toThrow(
-      UnauthorizedException,
-    );
+    await expect(
+      guard.canActivate(makeContext('blacklisted-token')),
+    ).rejects.toThrow(UnauthorizedException);
     // User existence check must not run if the token is already blacklisted
     expect(mockUsersService.findByIdInternal).not.toHaveBeenCalled();
   });
@@ -89,15 +89,18 @@ describe('JwtAuthGuard', () => {
     mockAuthService.isTokenBlacklisted.mockResolvedValue(false);
     mockUsersService.findByIdInternal.mockResolvedValue(null); // soft-deleted
 
-    await expect(guard.canActivate(makeContext('valid-token', 99))).rejects.toThrow(
-      UnauthorizedException,
-    );
+    await expect(
+      guard.canActivate(makeContext('valid-token', 99)),
+    ).rejects.toThrow(UnauthorizedException);
   });
 
   it('should return true for a valid token whose user is active', async () => {
     mockReflector.getAllAndOverride.mockReturnValue(false);
     mockAuthService.isTokenBlacklisted.mockResolvedValue(false);
-    mockUsersService.findByIdInternal.mockResolvedValue({ id: 1, isDeleted: false });
+    mockUsersService.findByIdInternal.mockResolvedValue({
+      id: 1,
+      isDeleted: false,
+    });
 
     const result = await guard.canActivate(makeContext('valid-token', 1));
 

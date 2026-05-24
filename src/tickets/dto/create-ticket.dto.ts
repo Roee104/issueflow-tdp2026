@@ -4,7 +4,15 @@
  * to the developer with the lowest open ticket count in the project.
  * dueDate is accepted as an ISO-8601 string and converted to a Date in the service.
  */
-import { IsEnum, IsInt, IsISO8601, IsNotEmpty, IsOptional, IsPositive, IsString } from 'class-validator';
+import {
+  IsEnum,
+  IsInt,
+  IsISO8601,
+  IsNotEmpty,
+  IsOptional,
+  IsPositive,
+  IsString,
+} from 'class-validator';
 import { TicketPriority, TicketStatus, TicketType } from '../ticket.entity';
 
 export class CreateTicketDto {

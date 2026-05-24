@@ -9,7 +9,11 @@
  * This guard ensures that logged-out tokens and deleted user accounts
  * are rejected immediately without waiting for token expiry.
  */
-import { ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 import { ExtractJwt } from 'passport-jwt';
